@@ -1,4 +1,4 @@
-import * as ClientCode from "./ClientCode";
+// import { client } from "./ClientCode";
 import { join } from "./Helpers";
 // This matches full functions, declared either with `function name(` or `var name =`.
 // NOTE: All function names in the regex must also be mentioned in the
@@ -12,15 +12,15 @@ const PLACEHOLDER_REGEX = /%(\w+)%/g;
 // The replacements should make the Elm JS stay strictly ES5 so that minifying
 // with esbuild in ES5 works.
 const REPLACEMENTS = {
-    // ### _Platform_initialize (main : Program flags model msg)
-    // New implementation.
-    // Note: `isDebug` is needed when you have programs that do and don’t support
-    // the debugger in the same output. `$elm$browser$Debugger$Main$wrapUpdate`
-    // etc is going to be defined, but it should only be used in
-    // `_Platform_initialize` when actually called from `_Debugger_element` or
-    // `_Debugger_document`, not from `_Platform_worker`. (`Html` programs don’t
-    // call `_Platform_initialize`.)
-    _Platform_initialize: `
+	// ### _Platform_initialize (main : Program flags model msg)
+	// New implementation.
+	// Note: `isDebug` is needed when you have programs that do and don’t support
+	// the debugger in the same output. `$elm$browser$Debugger$Main$wrapUpdate`
+	// etc is going to be defined, but it should only be used in
+	// `_Platform_initialize` when actually called from `_Debugger_element` or
+	// `_Debugger_document`, not from `_Platform_worker`. (`Html` programs don’t
+	// call `_Platform_initialize`.)
+	_Platform_initialize: `
 // This whole function was changed by elm-watch.
 function _Platform_initialize(programType, isDebug, debugMetadata, flagDecoder, args, init, impl, stepperBuilder)
 {
@@ -195,10 +195,10 @@ function _Utils_typeof_elmWatchInternal(x)
 		: "objectOrArray";
 }
 				`.trim(),
-    // Make sure these are always defined for easier code in `_Platform_initialize`.
-    // We don’t actually do anything with the `F` function – it’s just a way to get
-    // these definitions near the top of the file.
-    F: `
+	// Make sure these are always defined for easier code in `_Platform_initialize`.
+	// We don’t actually do anything with the `F` function – it’s just a way to get
+	// these definitions near the top of the file.
+	F: `
 var _Platform_effectManagers = {}, _Scheduler_enqueue; // added by elm-watch
 
 function F(arity, fun, wrapper) {
@@ -207,9 +207,9 @@ function F(arity, fun, wrapper) {
   return wrapper;
 }
   `.trim(),
-    // ### _VirtualDom_init (main : Html msg)
-    // New implementation.
-    _VirtualDom_init: `
+	// ### _VirtualDom_init (main : Html msg)
+	// New implementation.
+	_VirtualDom_init: `
 // This whole function was changed by elm-watch.
 var _VirtualDom_init = F4(function(virtualNode, flagDecoder, debugMetadata, args)
 {
@@ -247,15 +247,19 @@ var _VirtualDom_init = F4(function(virtualNode, flagDecoder, debugMetadata, args
 	);
 });
 				`.trim(),
-    // ### _Platform_export
-    // New implementation (inspired by the original).
-    _Platform_export: `
+	// ### _Platform_export
+	// New implementation (inspired by the original).
+	_Platform_export: `
 // This whole function was changed by elm-watch.
 function _Platform_export(exports)
 {
-	var reloadReasons = _Platform_mergeExportsElmWatch('Elm', scope['Elm'] || (scope['Elm'] = {}), exports);
-	if (reloadReasons.length > 0) {
-		throw new Error(["ELM_WATCH_RELOAD_NEEDED"].concat(Array.from(new Set(reloadReasons))).join("\\n\\n---\\n\\n"));
+	var reloadReasons = _Platform_mergeExportsElmWatch('Elm', window['Elm'] || (window['Elm'] = {}), exports);
+	if (import.meta.hot) {
+		if (reloadReasons.length > 0) {
+			import.meta.hot.invalidate(["ELM_WATCH_RELOAD_NEEDED"].concat(Array.from(new Set(reloadReasons))).join("\\n\\n---\\n\\n"))
+		} else {
+			import.meta.hot.accept()
+		}
 	}
 }
 
@@ -289,7 +293,7 @@ function _Platform_mergeExportsElmWatch(moduleName, obj, exports)
 				obj.init = function() {
 					var app = exports.init.apply(exports, arguments);
 					obj.__elmWatchApps.push(app);
-					globalThis.__ELM_WATCH.ON_INIT();
+					// globalThis.__ELM_WATCH.ON_INIT();
 					return app;
 				};
 			}
@@ -301,10 +305,10 @@ function _Platform_mergeExportsElmWatch(moduleName, obj, exports)
 	return reloadReasons;
 }
 				`.trim(),
-    // ### _Browser_application
-    // Don’t pluck things out of `impl`. Pass `impl` to `_Browser_document`. Init
-    // with URL given from `_Platform_initialize` (via `globalThis.__ELM_WATCH.INIT_URL`).
-    _Browser_application: `
+	// ### _Browser_application
+	// Don’t pluck things out of `impl`. Pass `impl` to `_Browser_document`. Init
+	// with URL given from `_Platform_initialize` (via `globalThis.__ELM_WATCH.INIT_URL`).
+	_Browser_application: `
 // This function was slightly modified by elm-watch.
 function _Browser_application(impl)
 {
@@ -353,9 +357,9 @@ function _Browser_application(impl)
 	});
 }
   `.trim(),
-    // ### $elm$browser$Browser$sandbox
-    // Don’t pluck `view` from `impl`. Pass `impl` to `_Browser_element`.
-    $elm$browser$Browser$sandbox: `
+	// ### $elm$browser$Browser$sandbox
+	// Don’t pluck `view` from `impl`. Pass `impl` to `_Browser_element`.
+	$elm$browser$Browser$sandbox: `
 // This function was slightly modified by elm-watch.
 var $elm$browser$Browser$sandbox = function (impl) {
 	return _Browser_element(
@@ -378,14 +382,14 @@ var $elm$browser$Browser$sandbox = function (impl) {
 		});
 };
   `.trim(),
-    // ### _Platform_worker, _Browser_element, _Browser_document, _Debugger_element, _Debugger_document
-    // Update call to `_Platform_initialize` to match our implementation.
-    // `_Browser_application` calls `_Browser_document`/`_Debugger_document`.
-    // `$elm$browser$Browser$sandbox` calls `_Browser_element`/`_Debugger_element`.
-    // In those cases we need `impl._impl`.
-    // Don’t pluck `view` from `impl`.
-    // Also pass the type of program, `isDebug` and the `debugMetadata` to `_Platform_initialize`.
-    _Platform_worker: `
+	// ### _Platform_worker, _Browser_element, _Browser_document, _Debugger_element, _Debugger_document
+	// Update call to `_Platform_initialize` to match our implementation.
+	// `_Browser_application` calls `_Browser_document`/`_Debugger_document`.
+	// `$elm$browser$Browser$sandbox` calls `_Browser_element`/`_Debugger_element`.
+	// In those cases we need `impl._impl`.
+	// Don’t pluck `view` from `impl`.
+	// Also pass the type of program, `isDebug` and the `debugMetadata` to `_Platform_initialize`.
+	_Platform_worker: `
 // This function was slightly modified by elm-watch.
 var _Platform_worker = F4(function(impl, flagDecoder, debugMetadata, args)
 {
@@ -403,7 +407,7 @@ var _Platform_worker = F4(function(impl, flagDecoder, debugMetadata, args)
 	);
 });
   `.trim(),
-    _Browser_element: `
+	_Browser_element: `
 // This function was slightly modified by elm-watch.
 var _Browser_element = _Debugger_element || F4(function(impl, flagDecoder, debugMetadata, args)
 {
@@ -439,7 +443,7 @@ var _Browser_element = _Debugger_element || F4(function(impl, flagDecoder, debug
 	);
 });
   `.trim(),
-    _Browser_document: `
+	_Browser_document: `
 // This function was slightly modified by elm-watch.
 var _Browser_document = _Debugger_document || F4(function(impl, flagDecoder, debugMetadata, args)
 {
@@ -475,8 +479,8 @@ var _Browser_document = _Debugger_document || F4(function(impl, flagDecoder, deb
 	);
 });
   `.trim(),
-    // Note: Debugger code does not need to worry about optimize mode shortened record fields.
-    _Debugger_element: `
+	// Note: Debugger code does not need to worry about optimize mode shortened record fields.
+	_Debugger_element: `
 // This function was slightly modified by elm-watch.
 var _Debugger_element = F4(function(impl, flagDecoder, debugMetadata, args)
 {
@@ -546,7 +550,7 @@ var _Debugger_element = F4(function(impl, flagDecoder, debugMetadata, args)
 	);
 });
   `.trim(),
-    _Debugger_document: `
+	_Debugger_document: `
 // This function was slightly modified by elm-watch.
 var _Debugger_document = F4(function(impl, flagDecoder, debugMetadata, args)
 {
@@ -611,25 +615,25 @@ var _Debugger_document = F4(function(impl, flagDecoder, debugMetadata, args)
 	);
 });
   `.trim(),
-    // ### _Scheduler_binding, _Scheduler_step
-    // This is needed because Elm mutates `Task`s in `_Scheduler_step`:
-    //
-    //     proc.__root.__kill = proc.__root.__callback(function(newRoot) {
-    //
-    // Some tasks are cancelable so `.__kill` is set to a function. Some are not,
-    // and then `.__kill` seems to be set to `undefined`. But the initial value is
-    // `null`! Later, there's just a truthiness check on `.__kill` so both `null` and
-    // `undefined` works. However, this means that the “did `init` return the same
-    // thing as last time?” check fails:
-    //
-    // - Either because of `null` vs `undefined`.
-    // - Or because of `null` vs `function`.
-    //
-    // To solve this, make sure that `.__kill` (called `.c` in what we have to
-    // work with below) is _always_ set to a function – a dummy one for
-    // non-cancelable tasks (`Function.prototype` is a no-op function).
-    // `_Utils_eq_elmWatchInternal` considers all functions to be equal.
-    _Scheduler_binding: `
+	// ### _Scheduler_binding, _Scheduler_step
+	// This is needed because Elm mutates `Task`s in `_Scheduler_step`:
+	//
+	//     proc.__root.__kill = proc.__root.__callback(function(newRoot) {
+	//
+	// Some tasks are cancelable so `.__kill` is set to a function. Some are not,
+	// and then `.__kill` seems to be set to `undefined`. But the initial value is
+	// `null`! Later, there's just a truthiness check on `.__kill` so both `null` and
+	// `undefined` works. However, this means that the “did `init` return the same
+	// thing as last time?” check fails:
+	//
+	// - Either because of `null` vs `undefined`.
+	// - Or because of `null` vs `function`.
+	//
+	// To solve this, make sure that `.__kill` (called `.c` in what we have to
+	// work with below) is _always_ set to a function – a dummy one for
+	// non-cancelable tasks (`Function.prototype` is a no-op function).
+	// `_Utils_eq_elmWatchInternal` considers all functions to be equal.
+	_Scheduler_binding: `
 // This function was slightly modified by elm-watch.
 function _Scheduler_binding(callback)
 {
@@ -641,7 +645,7 @@ function _Scheduler_binding(callback)
 	};
 }
   `.trim(),
-    _Scheduler_step: `
+	_Scheduler_step: `
 function _Scheduler_step(proc)
 {
 	while (proc.f)
@@ -692,81 +696,81 @@ function _Scheduler_step(proc)
 };
 const REPLACEMENTS_WITHOUT_PLACEHOLDERS = updateReplacements({}, REPLACEMENTS);
 export function inject(compilationMode, code) {
-    const replacements = getReplacements(compilationMode, code);
-    return code.replace(REPLACEMENT_REGEX, (match, name1, name = name1) => 
-    // istanbul ignore next
-    replacements[name] ??
-        `${match} /* elm-watch ERROR: No replacement for function '${name}' was found! */`);
+	const replacements = getReplacements(compilationMode, code);
+	return code.replace(REPLACEMENT_REGEX, (match, name1, name = name1) =>
+		// istanbul ignore next
+		replacements[name] ??
+		`${match} /* elm-watch ERROR: No replacement for function '${name}' was found! */`);
 }
 function getReplacements(compilationMode, code) {
-    switch (compilationMode) {
-        case "debug":
-        case "standard":
-            return REPLACEMENTS_WITHOUT_PLACEHOLDERS;
-        case "optimize":
-            return updateReplacements(getOptimizeModeRecordNames(code), REPLACEMENTS);
-    }
+	switch (compilationMode) {
+		case "debug":
+		case "standard":
+			return REPLACEMENTS_WITHOUT_PLACEHOLDERS;
+		case "optimize":
+			return updateReplacements(getOptimizeModeRecordNames(code), REPLACEMENTS);
+	}
 }
 // `.init` might be called `.G` in optimize mode. This figures out the shortened
 // names needed for hot reloading.
 function getOptimizeModeRecordNames(code) {
-    const match1 = /^\s*impl\.([\w$]+),\s*impl\.([\w$]+),\s*impl\.([\w$]+),/m.exec(code);
-    const match2 = /^\s*var divertHrefToApp = impl\.([\w$]+)/m.exec(code);
-    const match3 = /^\s*var nextNode = _VirtualDom_node\('body'\)\(_List_Nil\)\(doc\.([\w$]+)\);/m.exec(code);
-    const match4 = /^\s*\(title !== doc\.([\w$]+)\)/m.exec(code);
-    const match5 = /^\s*&& curr\.([\w$]+) .*\s*&& curr\.([\w$]+) .*\s*&& curr\.([\w$]+)\..*/m.exec(code);
-    // istanbul ignore next
-    const [, init = "init_missing", update = "update_missing", subscriptions = "subscriptions_missing",] = match1 ?? [];
-    // istanbul ignore next
-    const [, setup = "setup_missing"] = match2 ?? [];
-    // istanbul ignore next
-    const [, body = "body_missing"] = match3 ?? [];
-    // istanbul ignore next
-    const [, title = "title_missing"] = match4 ?? [];
-    // istanbul ignore next
-    const [, protocol = "protocol_missing", host = "host_missing", port_ = "port__missing",] = match5 ?? [];
-    const extra = Object.fromEntries(Array.from(code.matchAll(/^\s*var ([\w$]+) = impl\.([\w$]+);/gm), 
-    // istanbul ignore next
-    ([, from = "from_missing", to = "to_missing"]) => [from, to]));
-    return {
-        ...extra,
-        init,
-        update,
-        subscriptions,
-        setup,
-        body,
-        title,
-        protocol,
-        host,
-        port_,
-    };
+	const match1 = /^\s*impl\.([\w$]+),\s*impl\.([\w$]+),\s*impl\.([\w$]+),/m.exec(code);
+	const match2 = /^\s*var divertHrefToApp = impl\.([\w$]+)/m.exec(code);
+	const match3 = /^\s*var nextNode = _VirtualDom_node\('body'\)\(_List_Nil\)\(doc\.([\w$]+)\);/m.exec(code);
+	const match4 = /^\s*\(title !== doc\.([\w$]+)\)/m.exec(code);
+	const match5 = /^\s*&& curr\.([\w$]+) .*\s*&& curr\.([\w$]+) .*\s*&& curr\.([\w$]+)\..*/m.exec(code);
+	// istanbul ignore next
+	const [, init = "init_missing", update = "update_missing", subscriptions = "subscriptions_missing",] = match1 ?? [];
+	// istanbul ignore next
+	const [, setup = "setup_missing"] = match2 ?? [];
+	// istanbul ignore next
+	const [, body = "body_missing"] = match3 ?? [];
+	// istanbul ignore next
+	const [, title = "title_missing"] = match4 ?? [];
+	// istanbul ignore next
+	const [, protocol = "protocol_missing", host = "host_missing", port_ = "port__missing",] = match5 ?? [];
+	const extra = Object.fromEntries(Array.from(code.matchAll(/^\s*var ([\w$]+) = impl\.([\w$]+);/gm),
+		// istanbul ignore next
+		([, from = "from_missing", to = "to_missing"]) => [from, to]));
+	return {
+		...extra,
+		init,
+		update,
+		subscriptions,
+		setup,
+		body,
+		title,
+		protocol,
+		host,
+		port_,
+	};
 }
 function updateReplacements(optimizeModeRecordNames, replacements) {
-    return Object.fromEntries(Object.entries(replacements).map(([key, value]) => [
-        key,
-        updateString(optimizeModeRecordNames, value),
-    ]));
+	return Object.fromEntries(Object.entries(replacements).map(([key, value]) => [
+		key,
+		updateString(optimizeModeRecordNames, value),
+	]));
 }
 function updateString(optimizeModeRecordNames, string) {
-    return string.replace(PLACEHOLDER_REGEX, (_, name) => optimizeModeRecordNames[name] ?? name);
+	return string.replace(PLACEHOLDER_REGEX, (_, name) => optimizeModeRecordNames[name] ?? name);
 }
-export function proxyFile(outputPath, elmCompiledTimestamp, browserUiPosition, webSocketPort, debug) {
-    return `${clientCode(outputPath, elmCompiledTimestamp, "proxy", browserUiPosition, webSocketPort, debug)}\n${ClientCode.proxy}`;
-}
-export function clientCode(outputPath, elmCompiledTimestamp, compilationMode, browserUiPosition, webSocketPort, debug) {
-    const replacements = {
-        TARGET_NAME: outputPath.targetName,
-        INITIAL_ELM_COMPILED_TIMESTAMP: elmCompiledTimestamp.toString(),
-        ORIGINAL_COMPILATION_MODE: compilationMode,
-        ORIGINAL_BROWSER_UI_POSITION: browserUiPosition,
-        WEBSOCKET_PORT: webSocketPort.thePort.toString(),
-        DEBUG: debug.toString(),
-    };
-    return (versionedIdentifier(outputPath.targetName, webSocketPort) +
-        ClientCode.client.replace(new RegExp(`%(${join(Object.keys(replacements), "|")})%`, "g"), (match, name) => 
-        // istanbul ignore next
-        replacements[name] ?? match));
-}
+// export function proxyFile(outputPath, elmCompiledTimestamp, browserUiPosition, webSocketPort, debug) {
+// 	return `${clientCode(outputPath, elmCompiledTimestamp, "proxy", browserUiPosition, webSocketPort, debug)}\n${ClientCode.proxy}`;
+// }
+// export function clientCode(outputPath, elmCompiledTimestamp, compilationMode, browserUiPosition, webSocketPort, debug) {
+// 	const replacements = {
+// 		TARGET_NAME: outputPath.targetName,
+// 		INITIAL_ELM_COMPILED_TIMESTAMP: elmCompiledTimestamp.toString(),
+// 		ORIGINAL_COMPILATION_MODE: compilationMode,
+// 		ORIGINAL_BROWSER_UI_POSITION: browserUiPosition,
+// 		WEBSOCKET_PORT: webSocketPort.thePort.toString(),
+// 		DEBUG: debug.toString(),
+// 	};
+// 	return (versionedIdentifier(outputPath.targetName, webSocketPort) +
+// 		client.replace(new RegExp(`%(${join(Object.keys(replacements), "|")})%`, "g"), (match, name) =>
+// 			// istanbul ignore next
+// 			replacements[name] ?? match));
+// }
 // When only typechecking, don’t write a proxy file if:
 // - The output exists.
 // - And it was created by `elm-watch hot`. (`elm-watch make` output does not contain WebSocket stuff).
@@ -774,38 +778,38 @@ export function clientCode(outputPath, elmCompiledTimestamp, compilationMode, br
 // - And it has the same target name. (It might have changed, and needs to match.)
 // - And it used the same WebSocket port. (Otherwise it will never connect to us.)
 export function versionedIdentifier(targetName, webSocketPort) {
-    return `// elm-watch hot ${JSON.stringify({
-        version: "%VERSION%",
-        targetName,
-        webSocketPort: webSocketPort.thePort,
-    })}\n`;
+	return `// elm-watch hot ${JSON.stringify({
+		version: "%VERSION%",
+		targetName,
+		webSocketPort: webSocketPort.thePort,
+	})}\n`;
 }
 // Matches string literals, multiline comments, singleline comments and `.foo`.
 // We’re only interested in `.foo` – but only outside strings and comments.
 // Copied from: https://github.com/lydell/js-tokens/blob/15439aa6c3a66afa852c3549f8f57076935ead1f/index.coffee
 const RECORD_FIELD_REGEX = /(['"])(?:(?!\1)[^\\\n\r]|\\(?:\r\n|[^]))*(\1)?|\/\*(?:[^*]|\*(?!\/))*(\*\/)?|\/\/.*|\.[\w$]{1,4}\b/g;
 export function getRecordFields(compilationMode, code) {
-    switch (compilationMode) {
-        case "debug":
-        case "standard":
-            return undefined;
-        // If the set of accessed record field names changes in optimize mode, we cannot hot reload.
-        case "optimize": {
-            // istanbul ignore next
-            const matches = code.match(RECORD_FIELD_REGEX) ?? [];
-            return new Set(matches.filter((string) => string.startsWith(".")));
-        }
-    }
+	switch (compilationMode) {
+		case "debug":
+		case "standard":
+			return undefined;
+		// If the set of accessed record field names changes in optimize mode, we cannot hot reload.
+		case "optimize": {
+			// istanbul ignore next
+			const matches = code.match(RECORD_FIELD_REGEX) ?? [];
+			return new Set(matches.filter((string) => string.startsWith(".")));
+		}
+	}
 }
 // Only one scenario counts as changed:
 // We had a set of record fields (optimize mode), and then got a different set
 // of record fields (also in optimize mode). Mode changes (which results in
 // either side being `undefined`) does not count.
 export function recordFieldsChanged(oldSet, newSet) {
-    return !(oldSet === undefined ||
-        newSet === undefined ||
-        compareRecordFieldsHelper(oldSet) === compareRecordFieldsHelper(newSet));
+	return !(oldSet === undefined ||
+		newSet === undefined ||
+		compareRecordFieldsHelper(oldSet) === compareRecordFieldsHelper(newSet));
 }
 function compareRecordFieldsHelper(set) {
-    return Array.from(set).sort().join(",");
+	return Array.from(set).sort().join(",");
 }
