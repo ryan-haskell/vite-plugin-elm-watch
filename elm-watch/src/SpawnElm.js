@@ -1,6 +1,5 @@
 import * as fs from "fs";
 import * as os from "os";
-import { ElmMakeError } from "./ElmMakeError";
 import { __ELM_WATCH_ELM_TIMEOUT_MS, __ELM_WATCH_TMP_DIR } from "./Env";
 import * as Errors from "./Errors";
 import { silentlyReadIntEnvValue, toError, toJsonError, } from "./Helpers";
@@ -58,7 +57,7 @@ export function make({ elmJsonPath, compilationMode, inputs, outputPath, env, ge
                         exitReason.exitCode === 1 &&
                         stdout === ""
                         ? parsePotentialElmMakeJson(command, stderr) ??
-                            unexpectedElmMakeOutput
+                        unexpectedElmMakeOutput
                         : unexpectedElmMakeOutput;
             }
         }
@@ -162,7 +161,7 @@ function parseActualElmMakeJson(command, jsonString, extraError) {
     try {
         return {
             tag: "ElmMakeError",
-            error: ElmMakeError(json),
+            error: json,
             extraError,
         };
     }
@@ -201,11 +200,11 @@ export function install({ elmJsonPath, env, getNow, }) {
                 tag: "CreatingDummyFailed",
                 error,
             }),
-            kill: 
-            // istanbul ignore next
-            () => {
-                // Do nothing.
-            },
+            kill:
+                // istanbul ignore next
+                () => {
+                    // Do nothing.
+                },
         };
     }
     const command = {

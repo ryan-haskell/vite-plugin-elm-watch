@@ -1,10 +1,5 @@
 module Main exposing (main)
 
--- import Html
--- main =
---     Html.text "Hi"
--- module Main exposing (main)
-
 import Browser
 import Html exposing (..)
 import Html.Attributes as Attr
@@ -19,8 +14,14 @@ main =
         }
 
 
+type alias Model =
+    { count : Int
+    }
+
+
 init =
-    0
+    { count = 0
+    }
 
 
 type Msg
@@ -28,18 +29,20 @@ type Msg
     | Dec
 
 
+update : Msg -> Model -> Model
 update msg model =
     case msg of
         Inc ->
-            model + 1
+            { model | count = model.count + 1 }
 
         Dec ->
-            model - 1
+            { model | count = model.count - 1 }
 
 
+view : Model -> Html Msg
 view model =
     div []
         [ button [ Html.Events.onClick Inc ] [ text "+" ]
-        , p [] [ text (String.fromInt model) ]
+        , p [] [ text (String.fromInt model.count) ]
         , button [ Html.Events.onClick Dec ] [ text "-" ]
         ]
