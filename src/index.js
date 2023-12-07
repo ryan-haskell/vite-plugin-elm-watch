@@ -21,8 +21,10 @@ if (typeof __ELM_WATCH !== "object" || __ELM_WATCH === null) {
 }
 `
 
-const hmrClientCode = `
+const hmrClientCode = (id) => `
 if (import.meta.hot) {
+  let id = "${id}"
+
   class ElmErrorOverlay extends HTMLElement {
     constructor() {
       super()
@@ -50,14 +52,24 @@ if (import.meta.hot) {
             opacity: 0.5;
             background: black;
           }
-
+          .elm-error__parent {    
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+          }
           .elm-error {
             position: relative;
             background: linear-gradient(#333, #303030);
             color: white;
             font-weight: 400;
             font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
-            font-size: min(1rem, 1.5vw);
+            font-size: 1rem;
             padding: 2rem;
             white-space: nowrap;
             line-height: 1.4;
@@ -66,69 +78,73 @@ if (import.meta.hot) {
             border-top: solid 0.5rem indianred;
             max-height: calc(100vh - 4rem);
             overflow: auto;
-            width: 100%;
-            max-width: 72em;
+            max-width: 100%;
+            width: 52em;
             box-sizing: border-box;
           }
         </style>
         <div class="elm-error__background"></div>
-        <div class="elm-error"></div>
+        <div class="elm-error__parent">
+          <div class="elm-error"></div>
+        </div>
       \`
     }
   }
 
   import.meta.hot.on('elm:error', (data) => {
-
     if (!customElements.get('elm-error-overlay')) {
       customElements.define('elm-error-overlay', ElmErrorOverlay)
     }
 
     let existingOverlay = document.querySelector('elm-error-overlay')
-
     if (existingOverlay) {
       existingOverlay.onContentChanged(data.error)
     } else {
       let node = document.createElement('elm-error-overlay')
-      document.body.appendChild(node)
+      let root = document.querySelector('#elm_root') || document.body
+      root.appendChild(node)
       document.querySelector('elm-error-overlay').onContentChanged(data.error)
     }
-
   })
 
-  import.meta.hot.on('elm:success', () => {
-    let existingOverlay = document.querySelector('elm-error-overlay')
-    if (existingOverlay) {
-      existingOverlay.remove()
+  import.meta.hot.on('elm:success', (data) => {
+    if (data.id === id) {
+      let existingOverlay = document.querySelector('elm-error-overlay')
+      if (existingOverlay) {
+        existingOverlay.remove()
+      }
     }
   })
 
   if (import.meta.env.DEV) {
-    import.meta.hot.send('elm:client-ready')
+    import.meta.hot.send('elm:client-ready', { id })
   }
-
 }
 `
 
 /**
+ * @param {{ mode: 'standard' | 'debug' | 'optimize' | 'minify'}} args
  * @returns {import("vite").Plugin}
  */
-export default function elmWatchPlugin() {
+export default function elmWatchPlugin({ mode } = { mode: 'standard' }) {
   /**
    * @type {import("vite").ViteDevServer | undefined}
    */
   let server = undefined
-  let lastErrorSent = undefined
-  let esmCompiledElmJs = undefined
+  let lastErrorSent = {}
+  let compilationMode = mode === 'minify' ? 'optimize' : mode
 
   return {
     name: 'elm-watch',
     configureServer(server_) {
       server = server_
 
-      server.ws.on('elm:client-ready', () => {
-        if (lastErrorSent) {
+      server.ws.on('elm:client-ready', ({ id }) => {
+        let error = lastErrorSent[id]
+        if (error) {
           server.ws.send('elm:error', {
-            error: ElmErrorJson.toColoredHtmlOutput(lastErrorSent)
+            id,
+            error: ElmErrorJson.toColoredHtmlOutput(error)
           })
         }
       })
@@ -147,15 +163,13 @@ export default function elmWatchPlugin() {
 
     async load(id) {
       if (id.endsWith('.elm')) {
-
         let tmpDir = os.tmpdir()
         let tempOutputFilepath = path.join(tmpDir, 'out.js')
 
-        let compilationMode = 'optimize'
-
         let elmMake = make({
           elmJsonPath: {
-            tag: 'ElmJsonPath', theElmJsonPath: {
+            tag: 'ElmJsonPath',
+            theElmJsonPath: {
               tag: 'AbsolutePath',
               absolutePath: path.join(process.cwd(), 'elm.json')
             }
@@ -197,24 +211,31 @@ export default function elmWatchPlugin() {
         switch (makeResult.tag) {
           case 'Success':
             let compiledElmJs = fs.readFileSync(tempOutputFilepath, { encoding: 'utf-8' })
-            let elmWatchCompiledJs = inject(compilationMode, compiledElmJs)
-            esmCompiledElmJs = `export default ({ run () { ${initElmWatchWindowVarCode}; ${elmWatchCompiledJs}; return window.Elm } }).run(); ${hmrClientCode}`
+            lastErrorSent[id] = null
 
-            lastErrorSent = null
             if (server) {
-              server.ws.send('elm:success', { msg: 'Success!' })
+              // IN DEVELOPMENT
+              let transformedElmJs = patchBodyNode(inject(compilationMode, compiledElmJs))
+              let esmCompiledElmJs = `export default ({ run () { ${initElmWatchWindowVarCode}; ${transformedElmJs}; return window.Elm } }).run(); ${hmrClientCode(id)}`
+              server.ws.send('elm:success', { id })
+              return esmCompiledElmJs
+            } else {
+              // IN PRODUCTION
+              let transformedElmJs = patchBodyNode(compiledElmJs)
+              return `export default ({ run () { ${transformedElmJs}; return window.Elm } }).run()`
             }
-
-            return esmCompiledElmJs
           case 'ElmMakeError':
             let elmError = makeResult.error
-            lastErrorSent = elmError
+            lastErrorSent[id] = elmError
             if (server) {
               server.ws.send('elm:error', {
+                id,
                 error: ElmErrorJson.toColoredHtmlOutput(elmError)
               })
+              return `let Elm = new Proxy({}, { get(_t, prop, _r) { return (prop === 'init') ? () => ({}) : Elm } }); export default Elm; ${hmrClientCode(id)}; import.meta.hot.accept()`
+            } else {
+              throw new Error(ElmErrorJson.toColoredTerminalOutput(elmError))
             }
-            return `export default {}; ${hmrClientCode}; import.meta.hot.accept()`
           default:
             throw new Error(JSON.stringify(makeResult, null, 2))
         }
@@ -223,13 +244,24 @@ export default function elmWatchPlugin() {
   }
 }
 
+
+/** 
+ * @param {string} code
+ * @returns {string}
+*/
+const patchBodyNode = (code) =>
+  code
+    .split('var bodyNode = _VirtualDom_doc.body')
+    .join('var bodyNode = _VirtualDom_doc.getElementById("elm_root") || _VirtualDom_doc.body')
+
+
 /** 
  * @param {string} id
  * @returns {import("../elm-watch/src/Types.js").InputPath}
 */
 const toInputPath = (id) => ({
   tag: 'InputPath',
-  originalString: 'src/Main.elm',
+  originalString: id.slice(process.cwd() + 1),
   theInputPath: {
     tag: 'AbsolutePath',
     absolutePath: id
