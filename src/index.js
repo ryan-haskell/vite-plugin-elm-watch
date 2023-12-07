@@ -222,7 +222,7 @@ export default function elmWatchPlugin({ mode } = { mode: 'standard' }) {
             } else {
               // IN PRODUCTION
               let transformedElmJs = patchBodyNode(compiledElmJs)
-              return `export default ({ run () { ${transformedElmJs}; return window.Elm } }).run()`
+              return `export default ({ run () { ${transformedElmJs}; return this.Elm } }).run()`
             }
           case 'ElmMakeError':
             let elmError = makeResult.error
