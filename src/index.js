@@ -4,7 +4,7 @@ import path from 'path'
 import { make } from '../elm-watch/src/SpawnElm.js'
 import { inject } from '../elm-watch/src/Inject.js'
 import { walkImports } from '../elm-watch/src/ImportWalker.js'
-import ElmErrorJson from './elm-error-json.js'
+import * as ElmErrorJson from './elm-error-json.js'
 import { findClosest } from '../elm-watch/src/PathHelpers.js'
 import { readAndParse, getSourceDirectories } from '../elm-watch/src/ElmJson.js'
 
