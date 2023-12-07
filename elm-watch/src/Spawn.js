@@ -1,5 +1,5 @@
 import * as childProcess from "child_process";
-import { IS_WINDOWS } from "./IsWindows";
+import { IS_WINDOWS } from "./IsWindows.js";
 export function spawn(command) {
     let killed = false;
     // istanbul ignore next
@@ -20,10 +20,10 @@ export function spawn(command) {
         const stderr = [];
         child.on("error", (error) => {
             resolve(
-            // istanbul ignore next
-            error.code === "ENOENT"
-                ? { tag: "CommandNotFoundError", command }
-                : { tag: "OtherSpawnError", error, command });
+                // istanbul ignore next
+                error.code === "ENOENT"
+                    ? { tag: "CommandNotFoundError", command }
+                    : { tag: "OtherSpawnError", error, command });
         });
         let stdinWriteError = undefined;
         child.stdin.on("error", (error) => {
@@ -44,11 +44,11 @@ export function spawn(command) {
                 stdinWriteError = {
                     result,
                     timeoutId: setTimeout(
-                    // This is covered on macOS, but not on Linux.
-                    // istanbul ignore next
-                    () => {
-                        resolve(result);
-                    }, 500),
+                        // This is covered on macOS, but not on Linux.
+                        // istanbul ignore next
+                        () => {
+                            resolve(result);
+                        }, 500),
                 };
             }
             else {

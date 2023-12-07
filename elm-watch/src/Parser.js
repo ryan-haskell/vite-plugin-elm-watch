@@ -1,5 +1,5 @@
-import { split } from "./Helpers";
-import { isNonEmptyArray } from "./NonEmptyArray";
+import { split } from "./Helpers.js";
+import { isNonEmptyArray } from "./NonEmptyArray.js";
 // Note: This was initially written in a beatiful, immutable way. But I changed
 // it to use mutation, since it turned out to be much faster. Basically, every
 // time we mutate state we used to return a new one.

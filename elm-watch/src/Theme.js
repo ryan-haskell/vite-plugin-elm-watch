@@ -1,4 +1,4 @@
-import { IS_WINDOWS } from "./IsWindows";
+import { IS_WINDOWS } from "./IsWindows.js";
 // This gets the RGB values for the 16 ANSI colors (8 normal and 8 bright), as
 // well as the foreground and background colors.
 // Search for “Set Text Parameters” in: https://www.xfree86.org/current/ctlseqs.html

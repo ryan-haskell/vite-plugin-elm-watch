@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
-import { getSetSingleton, join } from "./Helpers";
-import { isNonEmptyArray, mapNonEmptyArray, } from "./NonEmptyArray";
+import { getSetSingleton, join } from "./Helpers.js";
+import { isNonEmptyArray, mapNonEmptyArray, } from "./NonEmptyArray.js";
 export function absolutePathFromString(from, ...pathStrings) {
     return {
         tag: "AbsolutePath",
@@ -47,6 +47,6 @@ export function longestCommonAncestorPath(paths) {
     return isNonEmptyArray(commonSegments)
         ? { tag: "AbsolutePath", absolutePath: join(commonSegments, path.sep) }
         : // On Windows, a `C:` path and a `D:` path has no common ancestor.
-            // istanbul ignore next
-            undefined;
+        // istanbul ignore next
+        undefined;
 }

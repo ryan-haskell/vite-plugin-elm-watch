@@ -1,5 +1,5 @@
 // import { client } from "./ClientCode";
-import { join } from "./Helpers";
+
 // This matches full functions, declared either with `function name(` or `var name =`.
 // NOTE: All function names in the regex must also be mentioned in the
 // `replacements` object, and vice versa!

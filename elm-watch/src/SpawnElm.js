@@ -1,10 +1,10 @@
 import * as fs from "fs";
 import * as os from "os";
-import { __ELM_WATCH_ELM_TIMEOUT_MS, __ELM_WATCH_TMP_DIR } from "./Env";
-import * as Errors from "./Errors";
-import { silentlyReadIntEnvValue, toError, toJsonError, } from "./Helpers";
-import { absoluteDirname, absolutePathFromString } from "./PathHelpers";
-import { spawn } from "./Spawn";
+import { __ELM_WATCH_ELM_TIMEOUT_MS, __ELM_WATCH_TMP_DIR } from "./Env.js";
+import * as Errors from "./Errors.js";
+import { silentlyReadIntEnvValue, toError, toJsonError, } from "./Helpers.js";
+import { absoluteDirname, absolutePathFromString } from "./PathHelpers.js";
+import { spawn } from "./Spawn.js";
 export function make({ elmJsonPath, compilationMode, inputs, outputPath, env, getNow, }) {
     const command = {
         command: "elm",

@@ -46,8 +46,6 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
   }
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.toColoredTerminalOutput = void 0;
 var parse = function (json) {
   // The error returned from node-elm-compiler's error.message
   // contains this string before the JSON blob:
@@ -69,7 +67,7 @@ var parse = function (json) {
     return undefined;
   }
 };
-var toColoredHtmlOutput = function (elmError, colorMap = {
+export var toColoredHtmlOutput = function (elmError, colorMap = {
   GREEN: 'mediumseagreen',
   RED: 'indianred',
   BLUE: 'dodgerblue',
@@ -150,7 +148,7 @@ var escapeHtml = function (str) {
     .split('<').join('&lt;')
     .split('>').join('&gt;');
 };
-var toColoredTerminalOutput = function (elmError) {
+export var toColoredTerminalOutput = function (elmError) {
   // TERMINAL ASCII CODES
   var code = function (num) { return "\u001b[" + num + "m"; };
   var reset = code(0);
@@ -202,9 +200,4 @@ var toColoredTerminalOutput = function (elmError) {
         render(elmError.message)
       ].join('\n\n')
   }
-};
-exports.toColoredTerminalOutput = toColoredTerminalOutput;
-exports.default = {
-  toColoredTerminalOutput: exports.toColoredTerminalOutput,
-  toColoredHtmlOutput: toColoredHtmlOutput
 };

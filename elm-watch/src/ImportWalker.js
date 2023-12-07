@@ -2,9 +2,9 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as util from "util";
-import { toError } from "./Helpers";
-import { mapNonEmptyArray } from "./NonEmptyArray";
-import * as Parser from "./Parser";
+import { toError } from "./Helpers.js";
+import { mapNonEmptyArray } from "./NonEmptyArray.js";
+import * as Parser from "./Parser.js";
 // Returns Elm file paths that if created, deleted or changed, `inputPath` needs
 // to be recompiled.
 export function walkImports(sourceDirectories, inputPaths) {

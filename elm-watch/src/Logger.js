@@ -1,9 +1,9 @@
 import * as readline from "readline";
 import * as util from "util";
-import { __ELM_WATCH_DEBUG, __ELM_WATCH_MOCKED_TIMINGS, __ELM_WATCH_NOT_TTY, __ELM_WATCH_QUERY_TERMINAL_MAX_AGE_MS, __ELM_WATCH_QUERY_TERMINAL_TIMEOUT_MS, ELM_WATCH_EXIT_ON_STDIN_END, NO_COLOR, WT_SESSION, } from "./Env";
-import * as Errors from "./Errors";
-import { bold, CLEAR, join, removeColor, silentlyReadIntEnvValue, } from "./Helpers";
-import { IS_WINDOWS } from "./IsWindows";
+import { __ELM_WATCH_DEBUG, __ELM_WATCH_MOCKED_TIMINGS, __ELM_WATCH_NOT_TTY, __ELM_WATCH_QUERY_TERMINAL_MAX_AGE_MS, __ELM_WATCH_QUERY_TERMINAL_TIMEOUT_MS, ELM_WATCH_EXIT_ON_STDIN_END, NO_COLOR, WT_SESSION, } from "./Env.js"
+import * as Errors from "./Errors.js"
+import { bold, CLEAR, join, removeColor, silentlyReadIntEnvValue, } from "./Helpers.js"
+import { IS_WINDOWS } from "./IsWindows.js"
 export const DEFAULT_COLUMNS = 80;
 export function makeLogger({ env, getNow, stdin, stdout, stderr, logDebug, }) {
     const noColor = NO_COLOR in env;
@@ -33,9 +33,9 @@ export function makeLogger({ env, getNow, stdin, stdout, stderr, logDebug, }) {
     const config = {
         debug: __ELM_WATCH_DEBUG in env,
         noColor,
-        fancy: 
-        // istanbul ignore next
-        (!IS_WINDOWS || WT_SESSION in env) && !noColor,
+        fancy:
+            // istanbul ignore next
+            (!IS_WINDOWS || WT_SESSION in env) && !noColor,
         isTTY: __ELM_WATCH_NOT_TTY in env
             ? /* istanbul ignore next */ false
             : stdout.isTTY,

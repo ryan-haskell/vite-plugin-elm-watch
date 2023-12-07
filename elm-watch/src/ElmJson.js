@@ -1,8 +1,8 @@
 import * as fs from "fs";
 import * as Decode from "tiny-decoders";
-import { toError, toJsonError } from "./Helpers";
-import { mapNonEmptyArray, NonEmptyArray } from "./NonEmptyArray";
-import { absoluteDirname, absolutePathFromString } from "./PathHelpers";
+import { toError, toJsonError } from "./Helpers.js";
+import { mapNonEmptyArray, NonEmptyArray } from "./NonEmptyArray.js";
+import { absoluteDirname, absolutePathFromString } from "./PathHelpers.js";
 export const ElmJson = Decode.fieldsUnion("type", {
     application: Decode.fieldsAuto({
         tag: () => "Application",

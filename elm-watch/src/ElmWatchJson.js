@@ -1,11 +1,11 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as Decode from "tiny-decoders";
-import { toError, toJsonError } from "./Helpers";
-import { IS_WINDOWS } from "./IsWindows";
-import { isNonEmptyArray, mapNonEmptyArray, NonEmptyArray, } from "./NonEmptyArray";
-import { findClosest } from "./PathHelpers";
-import { Port } from "./Port";
+import { toError, toJsonError } from "./Helpers.js";
+import { IS_WINDOWS } from "./IsWindows.js";
+import { isNonEmptyArray, mapNonEmptyArray, NonEmptyArray, } from "./NonEmptyArray.js";
+import { findClosest } from "./PathHelpers.js";
+import { Port } from "./Port.js";
 // First char uppercase: https://github.com/elm/compiler/blob/2860c2e5306cb7093ba28ac7624e8f9eb8cbc867/compiler/src/Parse/Variable.hs#L263-L267
 // Rest: https://github.com/elm/compiler/blob/2860c2e5306cb7093ba28ac7624e8f9eb8cbc867/compiler/src/Parse/Variable.hs#L328-L335
 // https://hackage.haskell.org/package/base-4.14.0.0/docs/Data-Char.html#v:isLetter
@@ -111,10 +111,10 @@ export function example(cwd, elmWatchJsonPath, elmMakeParsed) {
         targets: {
             "My target name": {
                 inputs: isNonEmptyArray(elmFiles)
-                    ? mapNonEmptyArray(elmFiles, (file) => 
-                    // Use slashes in all paths since they work everywhere (including
-                    // Windows), while backslashes only work on Windows.
-                    toUnixPath(path.relative(path.dirname(elmWatchJsonPath.theElmWatchJsonPath.absolutePath), path.resolve(cwd.path.absolutePath, file))))
+                    ? mapNonEmptyArray(elmFiles, (file) =>
+                        // Use slashes in all paths since they work everywhere (including
+                        // Windows), while backslashes only work on Windows.
+                        toUnixPath(path.relative(path.dirname(elmWatchJsonPath.theElmWatchJsonPath.absolutePath), path.resolve(cwd.path.absolutePath, file))))
                     : ["src/Main.elm"],
                 output,
             },

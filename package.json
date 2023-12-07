@@ -1,4 +1,30 @@
 {
+  "name": "vite-plugin-elm-watch",
+  "description": "A Vite plugin powered by elm-watch",
+  "version": "0.1.1",
+  "main": "src/index.js",
+  "directories": {
+    "example": "example"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ryannhg/vite-plugin-elm-watch.git"
+  },
+  "keywords": [
+    "elm",
+    "vite",
+    "plugin"
+  ],
+  "author": "Ryan Haskell-Glatz",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ryannhg/vite-plugin-elm-watch/issues"
+  },
+  "homepage": "https://github.com/ryannhg/vite-plugin-elm-watch#readme",
   "dependencies": {
     "chokidar": "^3.5.3",
     "cross-spawn": "^7.0.3",
