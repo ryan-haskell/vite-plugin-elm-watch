@@ -1,13 +1,16 @@
 import os from 'os'
 import fs from 'fs'
-import { minify } from 'terser'
 import path from 'path'
+import { fileURLToPath } from 'url'
+import { minify } from 'terser'
 import { make } from '../elm-watch/src/SpawnElm.js'
 import { inject } from '../elm-watch/src/Inject.js'
 import { walkImports } from '../elm-watch/src/ImportWalker.js'
 import * as ElmErrorJson from './elm-error-json.js'
 import { findClosest } from '../elm-watch/src/PathHelpers.js'
 import { readAndParse, getSourceDirectories } from '../elm-watch/src/ElmJson.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 /**
  * @type {{ [filepath: string]: Set<string> }}
@@ -104,7 +107,7 @@ export default function elmWatchPlugin(args = {}) {
             tag: 'OutputPath',
             theOutputPath: { tag: 'AbsolutePath', absolutePath: tempOutputFilepath }
           },
-          env: npxEnv([__dirname]),
+          env: process.env,
           getNow: () => new Date()
         })
 

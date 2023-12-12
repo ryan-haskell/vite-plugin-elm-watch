@@ -1,11 +1,11 @@
 # vite-plugin-elm-watch
 
-Use Vite with Elm projects!
+Use [Vite](https://vitejs.dev) and [Elm](https://elm-lang.org) with reliable HMR and full-color error messages!
 
 ## Installation
 
 ```bash
-npm install -D elm vite-plugin-elm-watch
+npm install -D vite-plugin-elm-watch
 ```
 
 ## Usage
@@ -13,10 +13,10 @@ npm install -D elm vite-plugin-elm-watch
 ```js
 // vite.config.js
 import { defineConfig } from 'vite'
-import ElmWatchPlugin from 'vite-plugin-elm-watch'
+import elmWatchPlugin from 'vite-plugin-elm-watch'
 
 export default defineConfig({
-  plugins: [ElmWatchPlugin()]
+  plugins: [elmWatchPlugin()]
 })
 ```
 
@@ -29,33 +29,22 @@ let app = Elm.Main.init()
 
 ## Features
 
-- __Import `*.elm` files__ in JavaScript files
-- __Hot reloading__ powered by [_elm-watch_](https://lydell.github.io/elm-watch/)!
-- __Full-color__ Elm error messages in the browser
-- __Minification__ automatically applied for production builds
+- __Import `*.elm` files__ directly from JavaScript
+- __Hot reloading__ powered by [_elm-watch_](https://lydell.github.io/elm-watch/)
+- __Full-color__, friendly compiler messages in the browser
+  - Supports light & dark mode, too!
+- __Minifies JS__ by default for production builds
 
 ![Full color Elm error overlay](./color_overlay_screenshot.png)
 
 
 ## Options
 
-There are a few ways you can customize this plugin's behavior.
-
-```ts
-type Options = {
-  // Default: 'auto'
-  mode: 'auto' | 'standard' | 'debug' | 'optimize' | 'minify'
-  // Default: false
-  isBodyPatchEnabled: boolean
-}
-```
-
 ### `mode`
 
-When using [the official Elm CLI](https://guide.elm-lang.org/install/elm.html), you have access to flags that 
-can add Elm's debugger, or optimize your code for production.
+When using [the official Elm CLI](https://guide.elm-lang.org/install/elm.html), you have access to flags that can add Elm's time-traveling debugger, or optimize your code for production.
 
-This plugin adds 
+This plugin also adds a few additional options for minifying compiled code for production and provides nice defaults in development.
 
 ```ts
   'auto'     // Uses "debug" in development and "minify" in production
@@ -69,15 +58,12 @@ This plugin adds
 ### `isBodyPatchEnabled`
 
 ```ts
-type Options = {
-  // ...,
-  isBodyPatchEnabled : boolean
-}
+isBodyPatchEnabled : boolean
 ```
 
-In production, you might encounter issues caused by third party JS that changes the DOM structure underneath Elm. This only is a problem for folks using `Browser.application`, which expects control over the entire `<body>` element.
+In production, you might encounter issues caused by third party JS that modify the `<body>` element. This only is a problem for folks using `Browser.application`, which expects control over the entire `<body>` element.
 
-By setting `isBodyPatchEnabled: true`, you can specify a different root node, using Elm's standard `node` field when initializing an Elm application.
+By enabling `isBodyPatchEnabled: true`, you'll be able to specify a custom root node. This uses Elm's standard `node` field when initializing the app:
 
 ```js
 // src/main.js
@@ -90,4 +76,4 @@ let app = Elm.Main.init({
 
 __Note:__ This will only work if the element has an `id` attribute.
 
-
+A known issue is that Elm will clear out attributes for this root element, so `id="elm_root"` won't be visible after Elm loads.
