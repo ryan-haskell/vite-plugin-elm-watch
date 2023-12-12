@@ -68,9 +68,14 @@ var parse = function (json) {
   }
 };
 export var toColoredHtmlOutput = function (elmError, colorMap = {
-  GREEN: 'mediumseagreen',
-  RED: 'indianred',
-  BLUE: 'dodgerblue',
+  "RED": "var(--elmError__red)",
+  "GREEN": "var(--elmError__green)",
+  "YELLOW": "var(--elmError__yellow)",
+  "BLUE": "var(--elmError__blue)",
+  "MAGENTA": "var(--elmError__magenta)",
+  "CYAN": "var(--elmError__cyan)",
+  "BLACK": "var(--elmError__foreground)",
+  "WHITE": "var(--elmError__foreground)",
 }) {
   var gap = "<br/>";
   // These can be passed in
@@ -102,7 +107,7 @@ export var toColoredHtmlOutput = function (elmError, colorMap = {
       var lines = elmError.errors.map(function (error) {
         return error.problems.map(function (problem) {
           return [
-            "<span style=\"color:cyan\">".concat(escapeHtml(header(error, problem)), "</span>"),
+            "<span style=\"color:var(--elmError__cyan)\">".concat(escapeHtml(header(error, problem)), "</span>"),
             render(problem.message)
           ].join(gap.repeat(2));
         }).join(gap.repeat(2));
@@ -110,7 +115,7 @@ export var toColoredHtmlOutput = function (elmError, colorMap = {
       return "<div ".concat(attrs, ">").concat(lines.join(gap.repeat(3)), "</div>");
     case 'error':
       return [
-        "<span style=\"color:cyan\">".concat(escapeHtml(header(elmError, elmError)), "</span>"),
+        "<span style=\"color:var(--elmError__cyan)\">".concat(escapeHtml(header(elmError, elmError)), "</span>"),
         "<div ".concat(attrs, ">").concat(render(elmError.message), "</div>")
       ].join(gap.repeat(2))
   }
@@ -123,7 +128,7 @@ export var toColoredHtmlOutput = function (elmError, colorMap = {
 var normalizeErrorMessages = function (messages) {
   return messages.map(function (msg) {
     return typeof msg === 'string'
-      ? { bold: false, underline: false, color: 'WHITE', string: msg }
+      ? { bold: false, underline: false, color: 'var(--elmError__white)', string: msg }
       : msg;
   });
 };
