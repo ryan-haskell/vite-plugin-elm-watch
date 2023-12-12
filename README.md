@@ -5,7 +5,7 @@ Use Vite with Elm projects!
 ## Installation
 
 ```bash
-npm install -S vite-plugin-elm-watch
+npm install -D elm vite-plugin-elm-watch
 ```
 
 ## Usage

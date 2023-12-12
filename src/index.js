@@ -104,7 +104,7 @@ export default function elmWatchPlugin(args = {}) {
             tag: 'OutputPath',
             theOutputPath: { tag: 'AbsolutePath', absolutePath: tempOutputFilepath }
           },
-          env: process.env,
+          env: npxEnv([__dirname]),
           getNow: () => new Date()
         })
 
@@ -128,8 +128,6 @@ export default function elmWatchPlugin(args = {}) {
             elmEntrypointObject[id] = walkResult.relatedElmFilePathsUntilError
             break
         }
-
-        let fallbackCode = `let Elm = new Proxy({}, { get(_t, prop, _r) { return (prop === 'init') ? () => ({}) : Elm } }); export default Elm; ${hmrClientCode(id, false)}; import.meta.hot.accept()`
 
         switch (makeResult.tag) {
           case 'Success':
@@ -159,10 +157,12 @@ export default function elmWatchPlugin(args = {}) {
             return lastSuccessfulCompiledJs[id]
           case "ElmNotFoundError":
             let error = [
-              'Elm could not be found... Please try again after running:',
+              'Elm could not be found... please try running this command:',
               '',
               '    npm install -D elm',
               '',
+              '',
+              'More installation options here: https://guide.elm-lang.org/install/elm'
             ].join('\n')
 
             throw new Error(error)
@@ -180,7 +180,7 @@ export default function elmWatchPlugin(args = {}) {
               if (lastSuccessfulCompiledJs[id]) {
                 return lastSuccessfulCompiledJs[id]
               } else {
-                return fallbackCode
+                return `let Elm = new Proxy({}, { get(_t, prop, _r) { return (prop === 'init') ? () => ({}) : Elm } }); export default Elm; ${hmrClientCode(id, false)}; import.meta.hot.accept()`
               }
             } else {
               throw new Error(ElmErrorJson.toColoredTerminalOutput(elmError))
@@ -235,6 +235,39 @@ const toInputPath = (id) => ({
     absolutePath: id
   },
 })
+
+
+// Some people install elm and elm-format locally instead of globally, using
+// npm or the elm-tooling CLI. To run locally installed tools, they use `npx`.
+//
+// `npx` adds all potential `node_modules/.bin` up the current directory to the
+// beginning of PATH, for example:
+//
+//     ❯ npx node -p 'process.env.PATH.split(path.delimiter)'
+//     [
+//       '/Users/you/stuff/node_modules/.bin',
+//       '/Users/you/node_modules/.bin',
+//       '/Users/node_modules/.bin',
+//       '/node_modules/.bin',
+//       '/usr/bin',
+//       'etc'
+//     ]
+//
+// This function also does that, so that local installations just work.
+function npxEnv(folders = []) {
+  let newPaths = folders.flatMap(folder =>
+    folder.split(path.sep).flatMap((_, index, parts) => [
+      [...parts.slice(0, index + 1), 'node_modules', '.bin'].join(path.sep),
+      [...parts.slice(0, index + 1), '.bin'].join(path.sep)
+    ]).reverse())
+  return {
+    ...process.env,
+    PATH: [
+      process.env.PATH,
+      newPaths
+    ].join(path.delimiter)
+  }
+}
 
 
 const findSourceDirectoriesFor = (entrypointFilepath) => {
