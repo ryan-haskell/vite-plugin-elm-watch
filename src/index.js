@@ -129,6 +129,8 @@ export default function elmWatchPlugin(args = {}) {
             break
         }
 
+        let fallbackCode = `let Elm = new Proxy({}, { get(_t, prop, _r) { return (prop === 'init') ? () => ({}) : Elm } }); export default Elm; ${hmrClientCode(id, false)}; import.meta.hot.accept()`
+
         switch (makeResult.tag) {
           case 'Success':
             let compiledElmJs = fs.readFileSync(tempOutputFilepath, { encoding: 'utf-8' })
@@ -155,6 +157,15 @@ export default function elmWatchPlugin(args = {}) {
             }
 
             return lastSuccessfulCompiledJs[id]
+          case "ElmNotFoundError":
+            let error = [
+              'Elm could not be found... Please try again after running:',
+              '',
+              '    npm install -D elm',
+              '',
+            ].join('\n')
+
+            throw new Error(error)
           case 'ElmMakeError':
             let elmError = makeResult.error
             lastErrorSent[id] = elmError
@@ -169,7 +180,7 @@ export default function elmWatchPlugin(args = {}) {
               if (lastSuccessfulCompiledJs[id]) {
                 return lastSuccessfulCompiledJs[id]
               } else {
-                return `let Elm = new Proxy({}, { get(_t, prop, _r) { return (prop === 'init') ? () => ({}) : Elm } }); export default Elm; ${hmrClientCode(id, false)}; import.meta.hot.accept()`
+                return fallbackCode
               }
             } else {
               throw new Error(ElmErrorJson.toColoredTerminalOutput(elmError))

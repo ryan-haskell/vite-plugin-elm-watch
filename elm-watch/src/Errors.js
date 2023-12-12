@@ -3,14 +3,11 @@ import * as fs from "fs";
 import * as path from "path";
 import { DecoderError } from "tiny-decoders";
 import * as url from "url";
-import * as ElmWatchJson from "./ElmWatchJson.js";
-import { ELM_WATCH_OPEN_EDITOR } from "./Env.js";
 import { bold as boldTerminal, dim as dimTerminal, join as joinString, RESET_COLOR, toError, } from "./Helpers.js";
 import { IS_WINDOWS } from "./IsWindows.js";
 import { DEFAULT_COLUMNS } from "./Logger.js";
 import { isNonEmptyArray, mapNonEmptyArray, } from "./NonEmptyArray.js";
 import { absolutePathFromString } from "./PathHelpers.js";
-import { ELM_WATCH_NODE, } from "./PostprocessShared.js";
 import * as Theme from "./Theme.js";
 function bold(string) {
     return { tag: "Bold", text: string };
@@ -189,21 +186,7 @@ ${bold("I had trouble with the JSON inside:")}
 ${printJsonError(error)}
 `;
 }
-export function elmWatchJsonNotFound(cwd, args) {
-    const example = ElmWatchJson.example(cwd, {
-        tag: "ElmWatchJsonPath",
-        theElmWatchJsonPath: absolutePathFromString(cwd.path, "elm-watch.json"),
-    }, ElmWatchJson.parseArgsLikeElmMake(args));
-    return fancyError("elm-watch.json NOT FOUND", { tag: "NoLocation" })`
-I read inputs, outputs and options from ${elmWatchJson}.
 
-${bold("But I couldn't find one!")}
-
-You need to create one with JSON like this:
-
-${text(example)}
-`;
-}
 export function debugOptimizeForHot() {
     const make = bold("elm-watch make");
     const hot = bold("elm-watch hot");
@@ -217,40 +200,7 @@ export function debugOptimizeClash() {
 ${bold("--debug")} and ${bold("--optimize")} cannot be used at the same time.
 `;
 }
-export function unknownFlags(cwd, elmWatchJsonPath, runMode, args, theUnknownFlags) {
-    const elmMakeParsed = ElmWatchJson.parseArgsLikeElmMake(args);
-    const extra = elmMakeParsed.output !== undefined
-        ? template`
-It looks like your arguments might fit in an ${bold("elm make")} command.
-If so, you could try moving them to the ${elmWatchJson} I found here:
 
-${text(elmWatchJsonPath.theElmWatchJsonPath.absolutePath)}
-
-For example, you could add some JSON like this:
-
-${text(ElmWatchJson.example(cwd, elmWatchJsonPath, elmMakeParsed))}
-  `
-        : text("");
-    return fancyError("UNEXPECTED FLAGS", { tag: "NoLocation" })`
-${printRunModeArgsHelp(runMode)}
-
-But you provided these flag-looking args:
-
-${join(theUnknownFlags.map((arg) => arg.theArg), "\n")}
-
-Try removing those extra flags!
-
-${extra}
-`;
-}
-function printRunModeArgsHelp(runMode) {
-    switch (runMode) {
-        case "make":
-            return template`The ${bold(runMode)} command only accepts the flags ${bold("--debug")} and ${bold("--optimize")}.`;
-        case "hot":
-            return template`The ${bold(runMode)} command only accepts no flags at all.`;
-    }
-}
 export function unknownTargetsSubstrings(elmWatchJsonPath, knownTargets, theUnknownTargetsSubstrings) {
     return fancyError("UNKNOWN TARGETS SUBSTRINGS", elmWatchJsonPath)`
 I read inputs, outputs and options from ${elmWatchJson}.
@@ -448,17 +398,6 @@ ${bold("It exited with an error:")}
 
 ${printExitReason(exitReason)}
 ${printStdio(stdout, stderr)}
-`;
-}
-export function elmWatchNodeMissingScript(elmWatchJsonPath) {
-    return fancyError("MISSING POSTPROCESS SCRIPT", elmWatchJsonPath)`
-You have specified this in ${elmWatchJson}:
-
-"postprocess": [${json(ELM_WATCH_NODE)}]
-
-You need to specify a JavaScript file to run as well, like so:
-
-"postprocess": [${json(ELM_WATCH_NODE)}, "postprocess.js"]
 `;
 }
 export function elmWatchNodeImportError(scriptPath, error, stdout, stderr) {
@@ -918,28 +857,6 @@ The compiled JavaScript code running in the browser seems to have sent a message
 ${printJsonError(error).text}
 
 The web socket code I generate is supposed to always send correct messages, so something is up here.
-  `.trim();
-}
-export function openEditorCommandFailed({ error, command, cwd, timeout, env, stdout, stderr, }) {
-    const errorReason = error.killed === true
-        ? `The command took too long to run, and was killed after ${timeout} ms.`
-        : error.code !== undefined
-            ? `The command exited with code ${error.code}.`
-            : // istanbul ignore next
-            "The command failed for an unknown reason.";
-    return `
-I ran your command for opening an editor (set via the ${ELM_WATCH_OPEN_EDITOR} environment variable):
-
-${commandToPresentationName(["cd", cwd.absolutePath])}
-${command}
-
-I ran the command with these extra environment variables:
-
-${JSON.stringify(env, null, 2)}
-
-${errorReason}
-
-${printStdio(stdout, stderr)(DEFAULT_COLUMNS, (piece) => piece.text)}
   `.trim();
 }
 export function printPATH(env, isWindows) {

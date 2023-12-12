@@ -24,11 +24,9 @@
   },
   "homepage": "https://github.com/ryannhg/vite-plugin-elm-watch#readme",
   "dependencies": {
-    "chokidar": "3.5.3",
     "cross-spawn": "7.0.3",
     "terser": "5.26.0",
-    "tiny-decoders": "7.0.1",
-    "ws": "8.12.0"
+    "tiny-decoders": "7.0.1"
   },
   "devDependencies": {
     "vite": "5.0.2"
