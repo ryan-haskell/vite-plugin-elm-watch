@@ -63,6 +63,17 @@ This plugin also adds a few additional options for minifying compiled code for p
 | 'minify'   // Adds the `--optimize` flag and minifies the JS output
 ```
 
+### `output`
+
+```ts
+  'default'  // Exports standard object with "init" function
+| 'react'    // Exports a React component that can be dropped into an existing app
+```
+
+This option allows you to specify what your imported Elm code will return. For React apps, we recommend using the `'react'` output so you can easily swap `.jsx/.tsx` files with `.elm` and things will just work ™️.
+
+__Warning:__ Still working through HMR bugs before this is production ready!
+
 
 ### `isBodyPatchEnabled`
 
@@ -76,9 +87,9 @@ By enabling `isBodyPatchEnabled: true`, you'll be able to specify a custom root 
 
 ```js
 // src/main.js
-import Elm from './src/Main.elm'
+import Main from './src/Main.elm'
 
-let app = Elm.Main.init({
+let app = Main.init({
   node: document.getElementById('elm_root')
 })
 ```
@@ -87,14 +98,3 @@ __Note:__ This will only work if the element has an `id` attribute.
 
 A known issue is that Elm will clear out attributes for this root element, so `id="elm_root"` won't be visible after Elm loads.
 
-
-### `output`
-
-```ts
-  'default'  // Exports standard object with "init" function
-| 'react'    // Exports a React component that can be dropped into an existing app
-```
-
-This option allows you to specify what your imported Elm code will return. For React apps, we recommend using the `'react'` output so you can easily swap `.jsx/.tsx` files with `.elm` and things will just work ™️.
-
-__Warning:__ Still working through HMR bugs before this is production ready!
