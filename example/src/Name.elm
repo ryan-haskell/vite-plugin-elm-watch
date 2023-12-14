@@ -1,8 +1,21 @@
-module Name exposing (Name, new, toFirstName, toLastName)
+module Name exposing
+    ( Name, new
+    , toFirstName, toLastName
+    )
+
+{-|
+
+@docs Name, new
+@docs toFirstName, toLastName
+
+-}
 
 
 type Name
-    = Name { first : String, last : String }
+    = Name
+        { first : String
+        , last : String
+        }
 
 
 new : { first : String, last : String } -> Name

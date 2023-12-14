@@ -1,6 +1,6 @@
 # vite-plugin-elm-watch
 
-__🚨 Warning!:__ This plugin is still experimental, and doesn't quite work as intended. Publishing here to share progress and work through bugs!
+> __🚨 Warning:__ This plugin is still experimental, and doesn't quite work as intended. Publishing here to share progress and work through minor bugs!
 
 Use [Vite](https://vitejs.dev) and [Elm](https://elm-lang.org) with reliable HMR and full-color error messages!
 
@@ -31,14 +31,20 @@ let app = Main.init()
 
 ## Features
 
-- __Import `*.elm` files__ directly from JavaScript
-- __Hot reloading__ powered by [_elm-watch_](https://lydell.github.io/elm-watch/)
+- __Import `*.elm` files__ directly from JavaScript or TypeScript
+- __Reliable HMR__ powered by [_elm-watch_](https://lydell.github.io/elm-watch/)
 - __Full-color__, friendly compiler messages in the browser
-  - Supports light & dark mode, too!
-- __Jump to errors__ from your browser
-- __Minifies JS__ by default for production builds
+- __Jump to problem__ from your browser in one click
+- __JS minification__ step is included
+- __React output mode__ for easy interop with existing components
 
-![Full color Elm error overlay](./color_overlay_screenshot.png)
+### Screenshots
+
+![Vite + Elm working](./screenshot.png)
+
+![Vite + Elm working](./screenshot_error.png)
+
+![Vite + Elm working](./screenshot_error_light.png)
 
 
 ## Options
