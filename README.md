@@ -15,10 +15,10 @@ npm install -D vite-plugin-elm-watch
 ```js
 // vite.config.js
 import { defineConfig } from 'vite'
-import elmWatchPlugin from 'vite-plugin-elm-watch'
+import elm from 'vite-plugin-elm-watch'
 
 export default defineConfig({
-  plugins: [elmWatchPlugin()]
+  plugins: [elm()]
 })
 ```
 
