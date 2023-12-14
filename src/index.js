@@ -1,7 +1,6 @@
 import os from 'os'
 import fs from 'fs'
 import path from 'path'
-import { fileURLToPath } from 'url'
 import { minify } from 'terser'
 import { make } from '../elm-watch/src/SpawnElm.js'
 import { inject } from '../elm-watch/src/Inject.js'
@@ -9,8 +8,7 @@ import { walkImports } from '../elm-watch/src/ImportWalker.js'
 import * as ElmErrorJson from './elm-error-json.js'
 import { findClosest } from '../elm-watch/src/PathHelpers.js'
 import { readAndParse, getSourceDirectories } from '../elm-watch/src/ElmJson.js'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+import launchEditor from 'launch-editor'
 
 /**
  * @type {{ [filepath: string]: Set<string> }}
@@ -19,15 +17,16 @@ let elmEntrypointObject = {}
 
 
 /**
- * @param {{ isBodyPatchEnabled : boolean; mode: 'auto' | 'standard' | 'debug' | 'optimize' | 'minify' }} args
+ * @param {import(".").Options} opts
  * @returns {import("vite").Plugin}
  */
-export default function elmWatchPlugin(args = {}) {
+export default function elmWatchPlugin(opts = {}) {
   // Handle arguments and defaults
-  let mode = args.mode === undefined ? 'auto' : args.mode
-  let isBodyPatchEnabled = typeof args.isBodyPatchEnabled === 'boolean'
-    ? args.isBodyPatchEnabled
+  let mode = opts.mode === undefined ? 'auto' : opts.mode
+  let isBodyPatchEnabled = typeof opts.isBodyPatchEnabled === 'boolean'
+    ? opts.isBodyPatchEnabled
     : false
+  let isReactComponent = opts.output === 'react'
 
   /**
    * @type {import("vite").ViteDevServer | undefined}
@@ -57,6 +56,9 @@ export default function elmWatchPlugin(args = {}) {
             error: ElmErrorJson.toColoredHtmlOutput(error)
           })
         }
+      })
+      server.ws.on('elm:open-editor', ({ filepath }) => {
+        launchEditor(filepath)
       })
     },
 
@@ -90,6 +92,19 @@ export default function elmWatchPlugin(args = {}) {
 
         let tmpDir = os.tmpdir()
         let tempOutputFilepath = path.join(tmpDir, 'out.js')
+
+        if (isReactComponent && compilationMode === 'debug') {
+          compilationMode = 'standard'
+          // TODO: Right now, React freaks out when unmounting .elm components
+          // that are using the debugger. You can test this by going from
+          // Counter.elm to Counter.tsx- the page will break and react will fail
+          // to remove a child node.
+          //
+          // Temporary fix is to disable "debug" mode when running in react mode
+          // Ultimately, I would like to support debug mode though!
+          //
+          console.warn('Debugger disabled for React development (enabling breaks HMR)!')
+        }
 
         let elmMake = make({
           elmJsonPath: {
@@ -140,9 +155,19 @@ export default function elmWatchPlugin(args = {}) {
             if (server) {
               server.ws.send('elm:success', { id })
             }
+
+            // Something like [ "Main" ] or [ "Components", "Counter" ], etc
+            let elmModulePath = []
+            try {
+              elmModulePath = id.substring(
+                findSourceDirectoriesFor(id)[0].theSourceDirectory.absolutePath.length + 1,
+                id.length - '.elm'.length
+              ).split('/')
+            } catch (_) { }
+
             let transformedElmJs = compiledElmJs
             if (inDevelopment && !shouldMinify) {
-              transformedElmJs = inject(compilationMode, transformedElmJs)
+              transformedElmJs = inject(compilationMode, transformedElmJs, elmModulePath)
             }
             if (isBodyPatchEnabled) {
               transformedElmJs = patchBodyNode(transformedElmJs)
@@ -151,10 +176,17 @@ export default function elmWatchPlugin(args = {}) {
               transformedElmJs = await toMinifiedElmCode(transformedElmJs)
             }
 
-            if (inDevelopment) {
-              lastSuccessfulCompiledJs[id] = `export default ({ run () { ${initElmWatchWindowVarCode}; ${transformedElmJs}; return window.Elm } }).run(); ${hmrClientCode(id, true)}`
+
+            if (isReactComponent) {
+
+              let moduleName = elmModulePath.slice(-1)[0] || 'Main'
+              lastSuccessfulCompiledJs[id] = [
+                reactComponentCode(moduleName),
+                `const program = ({ run () { if (import.meta.hot) { ${initElmWatchWindowVarCode}; } ${transformedElmJs}; ${denestCode(elmModulePath)}; return denest(window.Elm) } }).run(); ${hmrClientCode(id, true)}`
+              ].join('\n')
             } else {
-              lastSuccessfulCompiledJs[id] = `export default ({ run () { ${transformedElmJs}; return this.Elm } }).run()`
+              // TODO: Confirm switching from "this.Elm" to "window.Elm" didn't break production builds!
+              lastSuccessfulCompiledJs[id] = `export default ({ run () { if (import.meta.hot) { ${initElmWatchWindowVarCode}; } ${transformedElmJs}; ${denestCode(elmModulePath)}; return denest(window.Elm) } }).run(); ${hmrClientCode(id, true)}`
             }
 
             return lastSuccessfulCompiledJs[id]
@@ -183,7 +215,7 @@ export default function elmWatchPlugin(args = {}) {
               if (lastSuccessfulCompiledJs[id]) {
                 return lastSuccessfulCompiledJs[id]
               } else {
-                return `let Elm = new Proxy({}, { get(_t, prop, _r) { return (prop === 'init') ? () => ({}) : Elm } }); export default Elm; ${hmrClientCode(id, false)}; import.meta.hot.accept()`
+                return `export default { init: () => ({}) }; ${hmrClientCode(id, false)}; import.meta.hot.accept()`
               }
             } else {
               throw new Error(ElmErrorJson.toColoredTerminalOutput(elmError))
@@ -195,6 +227,71 @@ export default function elmWatchPlugin(args = {}) {
     }
   }
 }
+
+/**
+ * Makes it easier to work with multiple entrypoints by turning 
+ * `Elm.Components.Counter` into `Counter`.
+ * 
+ * This prevents conflicts for the `Elm` global namespace when
+ * importing two or more Elm programs in one place.
+ * 
+ * This means code changes from:
+ * 
+ * ```ts
+ * -- OLD
+ * import Elm from './src/Main.elm'
+ * let app = Elm.Main.init(...)
+ * 
+ * -- NEW
+ * import Main from './src/Main.elm'
+ * let app = Main.init(...)
+ * ```
+ * 
+ * @param {string[]} elmModulePath 
+ * @returns {string}
+ */
+const denestCode = (elmModulePath = []) => `
+const denest = (originalObj) => {
+  const elmModulePath = ${JSON.stringify(elmModulePath)}
+  let keyPath = [...elmModulePath]
+  let obj = originalObj
+  while (keyPath.length > 0) {
+    let key = keyPath.shift()
+    obj = obj[key]
+  }
+  obj.__elmModulePath = elmModulePath
+  return obj
+}`
+
+/**
+ * Exports a React component that handles mounting for
+ * easy swapping of `.jsx` and `.elm` files.
+ * 
+ * @param {string} moduleName 
+ * @returns {string}
+ */
+const reactComponentCode = (moduleName = 'Main') => `
+'use client';
+import { createElement, useEffect, useRef } from "react"
+
+const ${moduleName} = (props) => {
+  const elmRef = useRef(null)
+
+  useEffect(() => {
+    if (elmRef.current && elmRef.current.childElementCount === 0) {
+      console.log('${moduleName}', 'mounting to node...')
+      let node = elmRef.current
+      program.init({
+        node,
+        flags: { ...props }
+      })
+    }
+  },[elmRef])
+
+  return createElement('div', { ref: elmRef })
+}
+
+export default ${moduleName}`
 
 /**
  * 
@@ -238,39 +335,6 @@ const toInputPath = (id) => ({
     absolutePath: id
   },
 })
-
-
-// Some people install elm and elm-format locally instead of globally, using
-// npm or the elm-tooling CLI. To run locally installed tools, they use `npx`.
-//
-// `npx` adds all potential `node_modules/.bin` up the current directory to the
-// beginning of PATH, for example:
-//
-//     ❯ npx node -p 'process.env.PATH.split(path.delimiter)'
-//     [
-//       '/Users/you/stuff/node_modules/.bin',
-//       '/Users/you/node_modules/.bin',
-//       '/Users/node_modules/.bin',
-//       '/node_modules/.bin',
-//       '/usr/bin',
-//       'etc'
-//     ]
-//
-// This function also does that, so that local installations just work.
-function npxEnv(folders = []) {
-  let newPaths = folders.flatMap(folder =>
-    folder.split(path.sep).flatMap((_, index, parts) => [
-      [...parts.slice(0, index + 1), 'node_modules', '.bin'].join(path.sep),
-      [...parts.slice(0, index + 1), '.bin'].join(path.sep)
-    ]).reverse())
-  return {
-    ...process.env,
-    PATH: [
-      process.env.PATH,
-      newPaths
-    ].join(path.delimiter)
-  }
-}
 
 
 const findSourceDirectoriesFor = (entrypointFilepath) => {
@@ -319,6 +383,15 @@ if (import.meta.hot) {
 
     onContentChanged(html) {
       this.shadowRoot.querySelector('.elm-error').innerHTML = html
+
+      // Adds "Jump to problem" button click listeners
+      let buttons = this.shadowRoot.querySelectorAll('button[data-source]')
+      for (let btn of buttons) {
+        btn.addEventListener('click', () => {
+          let filepath = btn.getAttribute('data-source')
+          import.meta.hot.send('elm:open-editor', { filepath })
+        })
+      }
     }
 
     connectedCallback() {
@@ -355,6 +428,35 @@ if (import.meta.hot) {
             align-items: center;
             justify-content: center;
           }
+          button {
+            font-size: inherit;
+            padding: 0;
+            color: inherit;
+            background: none;
+            border: 0;
+            font-family: inherit;
+            cursor: pointer;
+            position: relative;
+            z-index: 1;
+          }
+          button:hover {
+            opacity: 0.75;
+          }
+          button:active {
+            opacity: 1;
+            color: var(--elmError__foreground)
+          }
+          button:after {
+            content: '';
+            position: absolute;
+            top: -0.33em;
+            left: -1em;
+            right: -1em;
+            bottom: -0.33em;
+            z-index: 0;
+            border-radius: 1em;
+            border: solid 2px;
+          }
           .elm-error__background {
             position: fixed;
             top: 0;
@@ -380,10 +482,11 @@ if (import.meta.hot) {
             background: var(--elmError__background);
             color: var(--elmError__foreground);
             font-weight: 400;
-            font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
+            font-family: 'Fira Code', Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
+            font-variant-ligatures: none;
             font-size: 1rem;
             white-space: nowrap;
-            line-height: 1.4;
+            line-height: 1.5;
             border-radius: 0.5rem;
             box-shadow: 0 1rem 1rem rgba(0, 0, 0, 0.125);
             border-top: solid 0.5rem var(--elmError__red);

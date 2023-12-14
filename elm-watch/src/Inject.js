@@ -11,7 +11,7 @@ const REPLACEMENT_REGEX = /^(?:function (F|_Platform_initialize|_Platform_export
 const PLACEHOLDER_REGEX = /%(\w+)%/g;
 // The replacements should make the Elm JS stay strictly ES5 so that minifying
 // with esbuild in ES5 works.
-const REPLACEMENTS = {
+const REPLACEMENTS = (elmModulePath) => ({
 	// ### _Platform_initialize (main : Program flags model msg)
 	// New implementation.
 	// Note: `isDebug` is needed when you have programs that do and don’t support
@@ -71,7 +71,7 @@ function _Platform_initialize(programType, isDebug, debugMetadata, flagDecoder, 
 				_Platform_effectManagers[key] = manager;
 				managers[key] = _Platform_instantiateManager(manager, sendToApp);
 				if (manager.a) {
-					reloadReasons.push("a new port '" + key + "' was added. The idea is to give JavaScript code a chance to set it up!");
+					reloadReasons.push("NEW_PORT_ADDED");
 					manager.a(key, sendToApp)
 				}
 			}
@@ -89,10 +89,10 @@ function _Platform_initialize(programType, isDebug, debugMetadata, flagDecoder, 
 
 		var newFlagResult = A2(_Json_run, newData.flagDecoder, flags);
 		if (!$elm$core$Result$isOk(newFlagResult)) {
-			return reloadReasons.concat("the flags type in \`" + moduleName + "\` changed and now the passed flags aren't correct anymore. The idea is to try to run with new flags!\\nThis is the error:\\n" + _Json_errorToString(newFlagResult.a));
+			return reloadReasons.concat("NEW_FLAGS");
 		}
 		if (!_Utils_eq_elmWatchInternal(debugMetadata, newData.debugMetadata)) {
-			return reloadReasons.concat("the message type in \`" + moduleName + '\` changed in debug mode ("debug metadata" changed).');
+			return reloadReasons.concat("MSG_TYPE_CHANGED");
 		}
 		init = impl.%init% || impl._impl.%init%;
 		if (isDebug) {
@@ -101,7 +101,7 @@ function _Platform_initialize(programType, isDebug, debugMetadata, flagDecoder, 
 		globalThis.__ELM_WATCH.INIT_URL = initUrl;
 		var newInitPair = init(newFlagResult.a);
 		if (!_Utils_eq_elmWatchInternal(initPair, newInitPair)) {
-			return reloadReasons.concat("\`" + moduleName + ".init\` returned something different than last time. Let's start fresh!");
+			return reloadReasons.concat("INIT_VALUE_CHANGED");
 		}
 
 		setUpdateAndSubscriptions();
@@ -255,11 +255,11 @@ function _Platform_export(exports)
 {
 	var reloadReasons = _Platform_mergeExportsElmWatch('Elm', window['Elm'] || (window['Elm'] = {}), exports);
 	if (import.meta.hot) {
-		if (reloadReasons.length > 0) {
-			import.meta.hot.invalidate(["ELM_WATCH_RELOAD_NEEDED"].concat(Array.from(new Set(reloadReasons))).join("\\n\\n---\\n\\n"))
-		} else {
-			import.meta.hot.accept()
-		}
+		import.meta.hot.accept((module) => {
+			if (reloadReasons.length > 0) {
+				import.meta.hot.invalidate(reloadReasons[0])
+			}
+		})
 	}
 }
 
@@ -275,13 +275,13 @@ function _Platform_mergeExportsElmWatch(moduleName, obj, exports)
 					for (var index = 0; index < obj.__elmWatchApps.length; index++) {
 						var app = obj.__elmWatchApps[index];
 						if (app.__elmWatchProgramType !== data.programType) {
-							reloadReasons.push("\`" + moduleName + ".main\` changed from \`" + app.__elmWatchProgramType + "\` to \`" + data.programType + "\`.");
+							reloadReasons.push("PROGRAM_TYPE_CHANGED");
 						} else {
 							try {
 								var innerReasons = app.__elmWatchHotReload(data, _Platform_effectManagers, _Scheduler_enqueue, moduleName);
 								reloadReasons = reloadReasons.concat(innerReasons);
 							} catch (error) {
-								reloadReasons.push("hot reload for \`" + moduleName + "\` failed, probably because of incompatible model changes.\\nThis is the error:\\n" + error + "\\n" + (error ? error.stack : ""));
+								reloadReasons.push("INCOMPATIBLE_MODEL_CHANGES");
 							}
 						}
 					}
@@ -693,22 +693,22 @@ function _Scheduler_step(proc)
 	}
 }
   `.trim(),
-};
-const REPLACEMENTS_WITHOUT_PLACEHOLDERS = updateReplacements({}, REPLACEMENTS);
-export function inject(compilationMode, code) {
-	const replacements = getReplacements(compilationMode, code);
+});
+const REPLACEMENTS_WITHOUT_PLACEHOLDERS = (elmModulePath) => updateReplacements({}, REPLACEMENTS(elmModulePath));
+export function inject(compilationMode, code, elmModulePath) {
+	const replacements = getReplacements(compilationMode, code, elmModulePath);
 	return code.replace(REPLACEMENT_REGEX, (match, name1, name = name1) =>
 		// istanbul ignore next
 		replacements[name] ??
 		`${match} /* elm-watch ERROR: No replacement for function '${name}' was found! */`);
 }
-function getReplacements(compilationMode, code) {
+function getReplacements(compilationMode, code, elmModulePath) {
 	switch (compilationMode) {
 		case "debug":
 		case "standard":
-			return REPLACEMENTS_WITHOUT_PLACEHOLDERS;
+			return REPLACEMENTS_WITHOUT_PLACEHOLDERS(elmModulePath);
 		case "optimize":
-			return updateReplacements(getOptimizeModeRecordNames(code), REPLACEMENTS);
+			return updateReplacements(getOptimizeModeRecordNames(code), REPLACEMENTS(elmModulePath));
 	}
 }
 // `.init` might be called `.G` in optimize mode. This figures out the shortened

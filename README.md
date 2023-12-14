@@ -1,5 +1,7 @@
 # vite-plugin-elm-watch
 
+__🚨 Warning!:__ This plugin is still experimental, and doesn't quite work as intended. Publishing here to share progress and work through bugs!
+
 Use [Vite](https://vitejs.dev) and [Elm](https://elm-lang.org) with reliable HMR and full-color error messages!
 
 ## Installation
@@ -22,9 +24,9 @@ export default defineConfig({
 
 ```js
 // In src/main.js
-import Elm from './src/Main.elm'
+import Main from './src/Main.elm'
 
-let app = Elm.Main.init()
+let app = Main.init()
 ```
 
 ## Features
@@ -33,6 +35,7 @@ let app = Elm.Main.init()
 - __Hot reloading__ powered by [_elm-watch_](https://lydell.github.io/elm-watch/)
 - __Full-color__, friendly compiler messages in the browser
   - Supports light & dark mode, too!
+- __Jump to errors__ from your browser
 - __Minifies JS__ by default for production builds
 
 ![Full color Elm error overlay](./color_overlay_screenshot.png)
@@ -77,3 +80,15 @@ let app = Elm.Main.init({
 __Note:__ This will only work if the element has an `id` attribute.
 
 A known issue is that Elm will clear out attributes for this root element, so `id="elm_root"` won't be visible after Elm loads.
+
+
+### `output`
+
+```ts
+  'default'  // Exports standard object with "init" function
+| 'react'    // Exports a React component that can be dropped into an existing app
+```
+
+This option allows you to specify what your imported Elm code will return. For React apps, we recommend using the `'react'` output so you can easily swap `.jsx/.tsx` files with `.elm` and things will just work ™️.
+
+__Warning:__ Still working through HMR bugs before this is production ready!

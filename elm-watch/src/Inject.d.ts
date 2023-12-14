@@ -1,6 +1,6 @@
 import { Port } from "./Port";
 import { BrowserUiPosition, CompilationMode, CompilationModeWithProxy, OutputPath } from "./Types";
-export declare function inject(compilationMode: CompilationMode, code: string): string;
+export declare function inject(compilationMode: CompilationMode, code: string, elmModulePath: string[]): string;
 export declare function proxyFile(outputPath: OutputPath, elmCompiledTimestamp: number, browserUiPosition: BrowserUiPosition, webSocketPort: Port, debug: boolean): string;
 export declare function clientCode(outputPath: OutputPath, elmCompiledTimestamp: number, compilationMode: CompilationModeWithProxy, browserUiPosition: BrowserUiPosition, webSocketPort: Port, debug: boolean): string;
 export declare function versionedIdentifier(targetName: string, webSocketPort: Port): string;
