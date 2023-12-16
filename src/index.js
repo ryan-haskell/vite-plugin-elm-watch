@@ -183,11 +183,10 @@ export default function elmWatchPlugin(opts = {}) {
               let moduleName = elmModulePath.slice(-1)[0] || 'Main'
               lastSuccessfulCompiledJs[id] = [
                 reactComponentCode(moduleName),
-                `const program = ({ run () { if (import.meta.hot) { ${initElmWatchWindowVarCode}; } ${transformedElmJs}; ${denestCode(elmModulePath)}; return denest(this.Elm) } }).run(); export { program as __program }; ${hmrClientCode(id, true)}`
+                `const program = ({ run () { if (import.meta.hot) { ${initElmWatchWindowVarCode}; } ${transformedElmJs}; ${denestCode(elmModulePath)}; return denest(this.Elm) } }).run(); export { program as __program }; ${hmrClientCode(id, true, true)}`
               ].join('\n')
             } else {
-              // TODO: Confirm switching from "this.Elm" to "window.Elm" didn't break production builds!
-              lastSuccessfulCompiledJs[id] = `export default ({ run () { if (import.meta.hot) { ${initElmWatchWindowVarCode}; } ${transformedElmJs}; ${denestCode(elmModulePath)}; return denest(window.Elm) } }).run(); ${hmrClientCode(id, true)}`
+              lastSuccessfulCompiledJs[id] = `export default ({ run () { if (import.meta.hot) { ${initElmWatchWindowVarCode}; } ${transformedElmJs}; ${denestCode(elmModulePath)}; return denest(this.Elm) } }).run(); ${hmrClientCode(id, true, false)}`
             }
 
             return lastSuccessfulCompiledJs[id]
@@ -216,7 +215,7 @@ export default function elmWatchPlugin(opts = {}) {
               if (lastSuccessfulCompiledJs[id]) {
                 return lastSuccessfulCompiledJs[id]
               } else {
-                return `export default { init: () => ({}) }; ${hmrClientCode(id, false)}; import.meta.hot.accept()`
+                return `export default { init: () => ({}) }; ${hmrClientCode(id, false, isReactComponent)}; import.meta.hot.accept()`
               }
             } else {
               throw new Error(ElmErrorJson.toColoredTerminalOutput(elmError))
@@ -415,7 +414,7 @@ if (typeof __ELM_WATCH !== "object" || __ELM_WATCH === null) {
 }
 `
 
-const hmrClientCode = (id, wasSuccessful) => `
+const hmrClientCode = (id, wasSuccessful, isReactComponent) => `
 if (import.meta.hot) {
   let id = "${id}"
   let wasSuccessful = ${wasSuccessful}
@@ -586,7 +585,7 @@ if (import.meta.hot) {
   }
 
   import.meta.hot.accept((module) => {
-    var data = module.__program.init("__elmWatchReturnData");
+    var data = ${isReactComponent ? "module.__program" : "module.default"}.init("__elmWatchReturnData");
     var apps = import.meta.hot.data.elmApps || [];
     var reloadReasons = [];
     for (var index = 0; index < apps.length; index++) {
