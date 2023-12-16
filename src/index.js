@@ -167,7 +167,22 @@ export default function elmWatchPlugin(opts = {}) {
 
             let transformedElmJs = compiledElmJs
             if (inDevelopment && !shouldMinify) {
-              transformedElmJs = inject(compilationMode, transformedElmJs, elmModulePath)
+              // transformedElmJs = inject(compilationMode, transformedElmJs, elmModulePath)
+              transformedElmJs = transformedElmJs.replaceAll('return ports ? { ports: ports } : {};', `const unmount = function(node) {
+                _Platform_enqueueEffects(managers, _Platform_batch(_List_Nil), _Platform_batch(_List_Nil));
+                managers = null
+                model = null
+                stepper = null
+                ports = null
+                if (node) {
+                  // TODO: Symbol me
+                  scope.domNode.replaceWith(node)
+                } else {
+                  scope.domNode.remove()
+                }
+              }
+
+              return ports ? { ports: ports, unmount: unmount } : { unmount: unmount };`).replaceAll('domNode = _VirtualDom_applyPatches(domNode, currNode, patches, sendToApp);', 'domNode = _VirtualDom_applyPatches(domNode, currNode, patches, sendToApp); scope.domNode = domNode;')
             }
             if (isBodyPatchEnabled) {
               transformedElmJs = patchBodyNode(transformedElmJs)
@@ -182,7 +197,7 @@ export default function elmWatchPlugin(opts = {}) {
               let moduleName = elmModulePath.slice(-1)[0] || 'Main'
               lastSuccessfulCompiledJs[id] = [
                 reactComponentCode(moduleName),
-                `const program = ({ run () { if (import.meta.hot) { ${initElmWatchWindowVarCode}; } ${transformedElmJs}; ${denestCode(elmModulePath)}; return denest(window.Elm) } }).run(); ${hmrClientCode(id, true)}`
+                `const program = ({ run () { if (import.meta.hot) { ${initElmWatchWindowVarCode}; } ${transformedElmJs}; ${denestCode(elmModulePath)}; return denest(this.Elm) } }).run(); ${hmrClientCode(id, true)}`
               ].join('\n')
             } else {
               // TODO: Confirm switching from "this.Elm" to "window.Elm" didn't break production builds!
@@ -276,17 +291,22 @@ import { createElement, useEffect, useRef } from "react"
 
 const ${moduleName} = (props) => {
   const elmRef = useRef(null)
+  const isMounted = useRef(false)
 
   useEffect(() => {
-    if (elmRef.current && elmRef.current.childElementCount === 0) {
-      console.log('${moduleName}', 'mounting to node...')
+    if (elmRef.current && !isMounted.current) {
+      isMounted.current = true
       let node = elmRef.current
-      program.init({
+      let app = program.init({
         node,
         flags: { ...props }
       })
+      return () => {
+        app.unmount(node)
+        isMounted.current = false
+      }
     }
-  },[elmRef])
+  },[])
 
   return createElement('div', { ref: elmRef })
 }
