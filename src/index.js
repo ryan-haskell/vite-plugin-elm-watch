@@ -288,7 +288,7 @@ const ${moduleName} = (props) => {
         flags: { ...props }
       })
       return () => {
-        app.unmount(node)
+        app.unmount()
         isMounted.current = false
       }
     }
@@ -333,15 +333,15 @@ const patchUnmount = (code) => {
     (_, defineProperties, end) =>
       end !== undefined
         ? `
-	function unmount(node) {
+	function unmount() {
 		_Platform_enqueueEffects(managers, _Platform_batch(_List_Nil), _Platform_batch(_List_Nil));
 		managers = null;
 		model = null;
 		stepper = null;
 		ports = null;
-		if (node) {
+		if (args && args.node) {
 			// TODO: Symbol me
-			scope.domNode.replaceWith(node);
+			scope.domNode.replaceWith(args.node);
 		} else {
 			scope.domNode.remove();
 		}
@@ -603,6 +603,9 @@ if (import.meta.hot) {
       }
     }
     if (reloadReasons.length > 0) {
+      for (var index = 0; index < apps.length; index++) {
+        apps[index].unmount();
+      }
       import.meta.hot.invalidate(reloadReasons[0]);
     }
   })
