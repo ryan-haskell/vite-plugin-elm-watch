@@ -313,10 +313,8 @@ let toMinifiedElmCode = async (unminifiedJs) => {
 */
 const patchBodyNode = (code) => {
   return code
-    .split('var bodyNode = _VirtualDom_doc.body')
-    .join('var bodyNode = (args && args.node && args.node.id) ? _VirtualDom_doc.getElementById(args.node.id) : _VirtualDom_doc.body')
-    .split(`_VirtualDom_node('body')`)
-    .join(`_VirtualDom_node((args && args.node && args.node.localName) ? args.node.localName : 'body')`)
+    .replaceAll('var bodyNode = _VirtualDom_doc.body', 'var bodyNode = args && args.node || _VirtualDom_doc.body')
+    .replaceAll(`_VirtualDom_node('body')`, `_VirtualDom_node(bodyNode.localName)`)
 }
 
 /** 
