@@ -5,7 +5,7 @@
 // `replacements` object, and vice versa!
 // The regex is anchored to the beginning of lines, which should make it
 // impossible to match within strings in the user’s program.
-const REPLACEMENT_REGEX = /^(?:function (F|_Platform_initialize|_Platform_export|_Browser_application|_Scheduler_binding|_Scheduler_step)\(|var (_VirtualDom_init|\$elm\$browser\$Browser\$sandbox|_Platform_worker|_Browser_element|_Browser_document|_Debugger_element|_Debugger_document) =).*\r?\n?\{(?:.*\r?\n)*?\}\)?;?$/gm;
+const REPLACEMENT_REGEX = /^(?:function (F|_Platform_initialize|_Browser_application|_Scheduler_binding|_Scheduler_step)\(|var (_VirtualDom_init|\$elm\$browser\$Browser\$sandbox|_Platform_worker|_Browser_element|_Browser_document|_Debugger_element|_Debugger_document) =).*\r?\n?\{(?:.*\r?\n)*?\}\)?;?$/gm;
 // Some object properties are marked with `%`, like `%prop%`. They need to be
 // replaced with shorter names in `optimize` mode.
 const PLACEHOLDER_REGEX = /%(\w+)%/g;
@@ -25,7 +25,7 @@ const REPLACEMENTS = (elmModulePath) => ({
 function _Platform_initialize(programType, isDebug, debugMetadata, flagDecoder, args, init, impl, stepperBuilder)
 {
 	if (args === "__elmWatchReturnData") {
-		return { impl: impl, debugMetadata: debugMetadata, flagDecoder : flagDecoder, programType: programType };
+		return { impl: impl, debugMetadata: debugMetadata, flagDecoder : flagDecoder, programType: programType, _Platform_effectManagers: _Platform_effectManagers, _Scheduler_enqueue: _Scheduler_enqueue };
 	}
 
 	var flags = _Json_wrap(args ? args['flags'] : undefined);
@@ -59,14 +59,14 @@ function _Platform_initialize(programType, isDebug, debugMetadata, flagDecoder, 
 	setUpdateAndSubscriptions();
 	_Platform_enqueueEffects(managers, initPair.b, subscriptions(model));
 
-	function __elmWatchHotReload(newData, new_Platform_effectManagers, new_Scheduler_enqueue, moduleName) {
+	function __elmWatchHotReload(newData) {
 		_Platform_enqueueEffects(managers, _Platform_batch(_List_Nil), _Platform_batch(_List_Nil));
-		_Scheduler_enqueue = new_Scheduler_enqueue;
+		_Scheduler_enqueue = newData._Scheduler_enqueue;
 
 		var reloadReasons = [];
 
-		for (var key in new_Platform_effectManagers) {
-			var manager = new_Platform_effectManagers[key];
+		for (var key in newData._Platform_effectManagers) {
+			var manager = newData._Platform_effectManagers[key];
 			if (!(key in _Platform_effectManagers)) {
 				_Platform_effectManagers[key] = manager;
 				managers[key] = _Platform_instantiateManager(manager, sendToApp);
@@ -216,7 +216,7 @@ var _VirtualDom_init = F4(function(virtualNode, flagDecoder, debugMetadata, args
 	var programType = "Html";
 
 	if (args === "__elmWatchReturnData") {
-		return { virtualNode: virtualNode, programType: programType };
+		return { virtualNode: virtualNode, programType: programType, _Platform_effectManagers: _Platform_effectManagers, _Scheduler_enqueue: _Scheduler_enqueue };
 	}
 
 	/**_UNUSED/ // always UNUSED with elm-watch
@@ -246,64 +246,6 @@ var _VirtualDom_init = F4(function(virtualNode, flagDecoder, debugMetadata, args
 		}
 	);
 });
-				`.trim(),
-	// ### _Platform_export
-	// New implementation (inspired by the original).
-	_Platform_export: `
-// This whole function was changed by elm-watch.
-function _Platform_export(exports)
-{
-	var reloadReasons = _Platform_mergeExportsElmWatch('Elm', window['Elm'] || (window['Elm'] = {}), exports);
-	if (import.meta.hot) {
-		import.meta.hot.accept((module) => {
-			if (reloadReasons.length > 0) {
-				import.meta.hot.invalidate(reloadReasons[0])
-			}
-		})
-	}
-}
-
-// This whole function was added by elm-watch.
-function _Platform_mergeExportsElmWatch(moduleName, obj, exports)
-{
-	var reloadReasons = [];
-	for (var name in exports) {
-		if (name === "init") {
-			if ("init" in obj) {
-				if ("__elmWatchApps" in obj) {
-					var data = exports.init("__elmWatchReturnData");
-					for (var index = 0; index < obj.__elmWatchApps.length; index++) {
-						var app = obj.__elmWatchApps[index];
-						if (app.__elmWatchProgramType !== data.programType) {
-							reloadReasons.push("PROGRAM_TYPE_CHANGED");
-						} else {
-							try {
-								var innerReasons = app.__elmWatchHotReload(data, _Platform_effectManagers, _Scheduler_enqueue, moduleName);
-								reloadReasons = reloadReasons.concat(innerReasons);
-							} catch (error) {
-								reloadReasons.push("INCOMPATIBLE_MODEL_CHANGES");
-							}
-						}
-					}
-				} else {
-					throw new Error("elm-watch: I'm trying to create \`" + moduleName + ".init\`, but it already exists and wasn't created by elm-watch. Maybe a duplicate script is getting loaded accidentally?");
-				}
-			} else {
-				obj.__elmWatchApps = [];
-				obj.init = function() {
-					var app = exports.init.apply(exports, arguments);
-					obj.__elmWatchApps.push(app);
-					// globalThis.__ELM_WATCH.ON_INIT();
-					return app;
-				};
-			}
-		} else {
-			var innerReasons = _Platform_mergeExportsElmWatch(moduleName + "." + name, obj[name] || (obj[name] = {}), exports[name]);
-			reloadReasons = reloadReasons.concat(innerReasons);
-		}
-	}
-	return reloadReasons;
-}
 				`.trim(),
 	// ### _Browser_application
 	// Don’t pluck things out of `impl`. Pass `impl` to `_Browser_document`. Init

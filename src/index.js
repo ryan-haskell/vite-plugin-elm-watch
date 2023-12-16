@@ -167,23 +167,9 @@ export default function elmWatchPlugin(opts = {}) {
 
             let transformedElmJs = compiledElmJs
             if (inDevelopment && !shouldMinify) {
-              // transformedElmJs = inject(compilationMode, transformedElmJs, elmModulePath)
-              transformedElmJs = transformedElmJs.replaceAll('return ports ? { ports: ports } : {};', `const unmount = function(node) {
-                _Platform_enqueueEffects(managers, _Platform_batch(_List_Nil), _Platform_batch(_List_Nil));
-                managers = null
-                model = null
-                stepper = null
-                ports = null
-                if (node) {
-                  // TODO: Symbol me
-                  scope.domNode.replaceWith(node)
-                } else {
-                  scope.domNode.remove()
-                }
-              }
-
-              return ports ? { ports: ports, unmount: unmount } : { unmount: unmount };`).replaceAll('domNode = _VirtualDom_applyPatches(domNode, currNode, patches, sendToApp);', 'domNode = _VirtualDom_applyPatches(domNode, currNode, patches, sendToApp); scope.domNode = domNode;')
+              transformedElmJs = inject(compilationMode, transformedElmJs, elmModulePath)
             }
+            transformedElmJs = patchUnmount(transformedElmJs)
             if (isBodyPatchEnabled) {
               transformedElmJs = patchBodyNode(transformedElmJs)
             }
@@ -197,7 +183,7 @@ export default function elmWatchPlugin(opts = {}) {
               let moduleName = elmModulePath.slice(-1)[0] || 'Main'
               lastSuccessfulCompiledJs[id] = [
                 reactComponentCode(moduleName),
-                `const program = ({ run () { if (import.meta.hot) { ${initElmWatchWindowVarCode}; } ${transformedElmJs}; ${denestCode(elmModulePath)}; return denest(this.Elm) } }).run(); ${hmrClientCode(id, true)}`
+                `const program = ({ run () { if (import.meta.hot) { ${initElmWatchWindowVarCode}; } ${transformedElmJs}; ${denestCode(elmModulePath)}; return denest(this.Elm) } }).run(); export { program as __program }; ${hmrClientCode(id, true)}`
               ].join('\n')
             } else {
               // TODO: Confirm switching from "this.Elm" to "window.Elm" didn't break production builds!
@@ -335,6 +321,47 @@ const patchBodyNode = (code) => {
   return code
     .replaceAll('var bodyNode = _VirtualDom_doc.body', 'var bodyNode = args && args.node || _VirtualDom_doc.body')
     .replaceAll(`_VirtualDom_node('body')`, `_VirtualDom_node(bodyNode.localName)`)
+}
+
+/**
+ * @param {string} code
+ * @returns {string}
+*/
+const patchUnmount = (code) => {
+  return code.replace(
+    /^\s*return (Object\.defineProperties\(\s*)?ports \? \{ ports: ports \} : \{\}(;|,[^)]+\);)|^\s*domNode = _VirtualDom_applyPatches\(domNode, currNode, patches, sendToApp\);/gm,
+    (_, defineProperties, end) =>
+      end !== undefined
+        ? `
+	function unmount(node) {
+		_Platform_enqueueEffects(managers, _Platform_batch(_List_Nil), _Platform_batch(_List_Nil));
+		managers = null;
+		model = null;
+		stepper = null;
+		ports = null;
+		if (node) {
+			// TODO: Symbol me
+			scope.domNode.replaceWith(node);
+		} else {
+			scope.domNode.remove();
+		}
+		if (import.meta.hot) {
+			const index = import.meta.hot.data.elmApps.indexOf(app);
+			if (index !== -1) {
+				import.meta.hot.data.elmApps.splice(index, 1);
+			}
+		}
+	}
+
+	var app = ${defineProperties ?? ""}ports ? { ports: ports, unmount: unmount } : { unmount: unmount }${end}
+	if (import.meta.hot) {
+		import.meta.hot.data.elmApps ??= [];
+		import.meta.hot.data.elmApps.push(app);
+	}
+	return app;
+        `.trim()
+        : 'domNode = _VirtualDom_applyPatches(domNode, currNode, patches, sendToApp); scope.domNode = domNode;'
+  )
 }
 
 /** 
@@ -557,5 +584,27 @@ if (import.meta.hot) {
   if (import.meta.env.DEV) {
     import.meta.hot.send('elm:client-ready', { id })
   }
+
+  import.meta.hot.accept((module) => {
+    var data = module.__program.init("__elmWatchReturnData");
+    var apps = import.meta.hot.data.elmApps || [];
+    var reloadReasons = [];
+    for (var index = 0; index < apps.length; index++) {
+      var app = apps[index];
+      if (app.__elmWatchProgramType !== data.programType) {
+        reloadReasons.push("PROGRAM_TYPE_CHANGED");
+      } else {
+        try {
+          var innerReasons = app.__elmWatchHotReload(data);
+          reloadReasons = reloadReasons.concat(innerReasons);
+        } catch (error) {
+          reloadReasons.push("INCOMPATIBLE_MODEL_CHANGES");
+        }
+      }
+    }
+    if (reloadReasons.length > 0) {
+      import.meta.hot.invalidate(reloadReasons[0]);
+    }
+  })
 }
 `
