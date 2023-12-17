@@ -338,6 +338,7 @@ const patchUnmount = (code) => {
 		model = null;
 		stepper = null;
 		ports = null;
+		scope.domNode.replaceChildren();
 		if (args && args.node) {
 			// TODO: Symbol me
 			scope.domNode.replaceWith(args.node);
