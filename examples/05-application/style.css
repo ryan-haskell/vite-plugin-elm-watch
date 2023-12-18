@@ -1,0 +1,76 @@
+/* CSS VARIABLES */
+:root {
+  --color__fg: black;
+  --color__bg: white;
+  --color__button: #e0e0e0;
+  --color__buttonHover: #e5e5e5;
+  --color__buttonActive: #ccc;
+  --color__buttonBorder: #ccc;
+}
+/* 
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color__fg: white;
+    --color__bg: black;
+    --color__bg2: #222;
+  }
+} */
+
+
+/* CENTERING THE TEXT */
+html, body {
+  height: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 1rem;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-weight: 700;
+  color: var(--color__fg);
+  background-color: var(--color__bg);
+}
+
+button {
+  font: inherit;
+  color: var(--color__fg);
+  background-color: var(--color__button);
+  border: solid 1px var(--color__buttonBorder);
+  padding: 0.5em 1em;
+  border-radius: 0.25em;
+  cursor: pointer;
+  transition: background-color 100ms ease-in-out;
+}
+button:hover {
+  background-color: var(--color__buttonHover);
+}
+button:active {
+  background-color: var(--color__buttonActive);
+}
+
+.row {
+  display: flex;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+}
+
+.gap_8 {
+  gap: 0.5rem;
+}
+.gap_16 {
+  gap: 1rem;
+}
+
+.col:where(.align_left) {
+  align-items: flex-start;
+}
+.row:where(.align_left) {
+  justify-content: flex-start;
+}
