@@ -1,0 +1,20 @@
+{
+  "name": "01-hello-world",
+  "version": "1.0.0",
+  "description": "How to use Vite with Elm",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "npm i && npm run dev",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "Ryan Haskell-Glatz",
+  "license": "ISC",
+  "devDependencies": {
+    "vite": "5.0.8",
+    "vite-plugin-elm-watch": "1.0.1"
+  }
+}

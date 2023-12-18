@@ -40,11 +40,11 @@ let app = Main.init()
 
 ### Screenshots
 
-![Vite + Elm working](./screenshot.png)
+![Vite + Elm working](./docs/screenshot.png)
 
-![Vite + Elm working](./screenshot_error.png)
+![Vite + Elm working](./docs/screenshot_error.png)
 
-![Vite + Elm working](./screenshot_error_light.png)
+![Vite + Elm working](./docs/screenshot_error_light.png)
 
 
 ## Options
