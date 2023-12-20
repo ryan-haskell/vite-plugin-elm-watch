@@ -272,10 +272,81 @@ const denest = (originalObj) => {
  */
 const reactComponentCode = (moduleName = 'Main') => `
 'use client';
-import { createElement, useEffect, useRef } from "react"
+import { createElement, useEffect, useRef, useState } from "react"
+
+const toJson = (value) => {
+  try {
+    return JSON.parse(JSON.stringify(value))
+  } catch (_) {
+    return null
+  }
+}
+
+const prefix = 'prop_'
+
+const subscribeAllPorts = ({ app, lastProps, listeners }) => {
+  if (app && app.ports) {
+    for (let name in app.ports) {
+      let port = app.ports[name]
+      if (port.subscribe) {
+        listeners.current[name] = (data) => {
+          let nameWithoutPrefix = name.slice(prefix.length)
+          if (typeof lastProps.current[nameWithoutPrefix] === 'function') {
+            lastProps.current[nameWithoutPrefix](data)
+          }
+        }
+        port.subscribe(listeners.current[name])
+      }
+    }
+  }
+}
+
+const unsubscribeAllPorts = ({ app, listeners }) => {
+  if (app && app.ports) {
+    for (let name in app.ports) {
+      let port = app.ports[name]
+      if (listeners.current[name] && port.unsubscribe) {
+        port.unsubscribe(listeners.current[name])
+      }
+    }
+  }
+}
+
+const handleJsToElmPorts = ({ lastProps, props, elmApp }) => () => {
+  // See if anything changed
+  let propNames = new Set([
+    ...Object.keys(lastProps.current),
+    ...Object.keys(props),
+  ])
+
+  const sendToElm = (key, value) => {
+    if (elmApp.current && elmApp.current.ports) {
+      let port = elmApp.current.ports[prefix + key]
+      if (port && port.send) {
+        port.send(toJson(value))
+      }
+    }
+  }
+
+  for (let propName of propNames) {
+    let oldValue = lastProps.current[propName]
+    let newValue = props[propName]
+
+    if (JSON.stringify(oldValue) === JSON.stringify(newValue)) {
+      continue
+    } else {
+      sendToElm(propName, toJson(newValue))
+    }
+  }
+
+  lastProps.current = props
+}
 
 const ${moduleName} = (props) => {
+  const lastProps = useRef(props)
+  const elmApp = useRef(null)
   const elmRef = useRef(null)
+  const listeners = useRef({})
   const isMounted = useRef(false)
 
   useEffect(() => {
@@ -284,14 +355,23 @@ const ${moduleName} = (props) => {
       let node = elmRef.current
       let app = program.init({
         node,
-        flags: { ...props }
+        flags: toJson(props)
       })
+      elmApp.current = app
+      subscribeAllPorts({ app, lastProps, listeners })
       return () => {
+        elmApp.current = null
+        unsubscribeAllPorts({ app, listeners })
         app.unmount()
         isMounted.current = false
       }
     }
   },[])
+
+  useEffect(
+    handleJsToElmPorts({ lastProps, props, elmApp }),
+    Object.values(props)
+  )
 
   // Note: This used to be "div", but that led to the model
   // being null when the Elm "view" function returned a "div"...

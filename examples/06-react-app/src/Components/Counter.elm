@@ -1,4 +1,4 @@
-module Components.Counter exposing (main)
+port module Components.Counter exposing (main)
 
 import Browser
 import Html exposing (..)
@@ -7,15 +7,32 @@ import Html.Events
 
 
 
+-- INTEROP
+
+
+type alias Flags =
+    { name : String
+    , initialCount : Int
+    }
+
+
+port prop_name : (String -> msg) -> Sub msg
+
+
+port prop_onCounterIncrement : Int -> Cmd msg
+
+
+
 -- MAIN
 
 
-main : Program () Model Msg
+main : Program Flags Model Msg
 main =
-    Browser.sandbox
+    Browser.element
         { init = init
         , update = update
         , view = view
+        , subscriptions = subscriptions
         }
 
 
@@ -24,14 +41,18 @@ main =
 
 
 type alias Model =
-    { count : Int
+    { name : String
+    , count : Int
     }
 
 
-init : Model
-init =
-    { count = 0
-    }
+init : Flags -> ( Model, Cmd Msg )
+init flags =
+    ( { count = flags.initialCount
+      , name = flags.name
+      }
+    , Cmd.none
+    )
 
 
 
@@ -40,13 +61,33 @@ init =
 
 type Msg
     = Increment
+    | NamePropChanged String
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Increment ->
-            { model | count = model.count + 1 }
+            let
+                newCount : Int
+                newCount =
+                    model.count + 1
+            in
+            ( { model | count = newCount }
+            , prop_onCounterIncrement newCount
+            )
+
+        NamePropChanged newName ->
+            ( { model | name = newName }
+            , Cmd.none
+            )
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.batch
+        [ prop_name NamePropChanged
+        ]
 
 
 
@@ -61,7 +102,7 @@ view model =
     in
     div [ class "card" ]
         [ button [ Html.Events.onClick Increment ]
-            [ text ("Elm count is " ++ count) ]
+            [ text (model.name ++ " is " ++ count) ]
         , p []
             [ text "Edit "
             , code [] [ text "src/Components/Counter.elm" ]
