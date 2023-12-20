@@ -102,5 +102,5 @@ A known issue is that Elm will clear out attributes for this root element, so `i
 
 1. Missing support for flags/ports (coming in a future release!)
 
-2. When in a React app, changing a ".elm" component with a ".tsx" one causes issues with unmounting
+2. When in a React app, swapping a ".elm" component with a ".tsx" will causes issues with unmounting.
     - React calls `removeChild` internally on the initial DOM node, before our component can run `app.unmount()`. This leads to a runtime exception!
