@@ -293,7 +293,9 @@ const ${moduleName} = (props) => {
     }
   },[])
 
-  return createElement('div', { ref: elmRef })
+  // Note: This used to be "div", but that led to the model
+  // being null when the Elm "view" function returned a "div"...
+  return createElement('elmroot', { ref: elmRef })
 }
 
 export default ${moduleName}`
@@ -327,41 +329,71 @@ const patchBodyNode = (code) => {
  * @returns {string}
 */
 const patchUnmount = (code) => {
-  return code.replace(
-    /^\s*return (Object\.defineProperties\(\s*)?ports \? \{ ports: ports \} : \{\}(;|,[^)]+\);)|^\s*domNode = _VirtualDom_applyPatches\(domNode, currNode, patches, sendToApp\);/gm,
-    (_, defineProperties, end) =>
-      end !== undefined
-        ? `
-	function unmount() {
-		_Platform_enqueueEffects(managers, _Platform_batch(_List_Nil), _Platform_batch(_List_Nil));
-		managers = null;
-		model = null;
-		stepper = null;
-		ports = null;
-		scope.domNode.replaceChildren();
-		if (args && args.node) {
-			// TODO: Symbol me
-			scope.domNode.replaceWith(args.node);
-		} else {
-			scope.domNode.remove();
-		}
-		if (import.meta.hot) {
-			const index = import.meta.hot.data.elmApps.indexOf(app);
-			if (index !== -1) {
-				import.meta.hot.data.elmApps.splice(index, 1);
-			}
-		}
-	}
+  // TODO: Is this not gonna work with --optimize?
+  let isHtmlProgram = code.includes(`'init':_VirtualDom_init`)
+  let unmountFunctionCode = `
+  function unmount() {
+    if (typeof managers !== 'undefined') {
+      // Only defined for Browser apps (not HTML based ones)
+      _Platform_enqueueEffects(managers, _Platform_batch(_List_Nil), _Platform_batch(_List_Nil));
+      managers = null;
+      model = null;
+      stepper = null;
+      ports = null;
+    }
+    // TODO: Symbol me
+    if (scope.domNode.removeChildren) {
+      // Not available for text nodes
+      scope.domNode.replaceChildren();
+    }
+    if (args && args.node) {
+      scope.domNode.replaceWith(args.node);
+    } else {
+      scope.domNode.remove();
+    }
+    if (import.meta.hot) {
+      const index = import.meta.hot.data.elmApps.indexOf(app);
+      if (index !== -1) {
+        import.meta.hot.data.elmApps.splice(index, 1);
+      }
+    }
+  }
+  `
 
-	var app = ${defineProperties ?? ""}ports ? { ports: ports, unmount: unmount } : { unmount: unmount }${end}
-	if (import.meta.hot) {
-		import.meta.hot.data.elmApps ??= [];
-		import.meta.hot.data.elmApps.push(app);
-	}
-	return app;
-        `.trim()
-        : 'domNode = _VirtualDom_applyPatches(domNode, currNode, patches, sendToApp); scope.domNode = domNode;'
-  )
+  if (isHtmlProgram) {
+    return code.replace(
+      'return Object.defineProperties(\n		{}',
+      `${unmountFunctionCode}
+      let app = { unmount: unmount }
+      if (import.meta.hot) {
+        import.meta.hot.data.elmApps ??= [];
+        import.meta.hot.data.elmApps.push(app);
+      }
+      return Object.defineProperties(\n		app`
+    )
+      .replace(
+        'var sendToApp = function() {};',
+        'scope.domNode = node;\nvar sendToApp = function() {};'
+      )
+  } else {
+    return code.replace(
+      /^\s*return (Object\.defineProperties\(\s*)?ports \? \{ ports: ports \} : \{\}(;|,[^)]+\);)|^\s*domNode = _VirtualDom_applyPatches\(domNode, currNode, patches, sendToApp\);/gm,
+      (_, defineProperties, end) =>
+        end !== undefined
+          ? `
+    ${unmountFunctionCode}
+  
+    var app = ${defineProperties ?? ""}ports ? { ports: ports, unmount: unmount } : { unmount: unmount }${end}
+    if (import.meta.hot) {
+      import.meta.hot.data.elmApps ??= [];
+      import.meta.hot.data.elmApps.push(app);
+    }
+    return app;
+          `.trim()
+          : 'domNode = _VirtualDom_applyPatches(domNode, currNode, patches, sendToApp); scope.domNode = domNode;'
+    )
+  }
+
 }
 
 /** 

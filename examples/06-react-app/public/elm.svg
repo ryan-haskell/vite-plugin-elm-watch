@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg width="96px" height="96px" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="-320 -320 640 640">
+<g transform="scale(1,-1)">
+	<rect x="-320" y="-320" width="640" height="640" fill="white"></rect>
+	<polygon fill="#1293d8" points="-280,-90 0,190 280,-90" transform="translate(0 -210)"/>
+	<polygon fill="#1293d8" points="-280,-90 0,190 280,-90" transform="translate(-210 0) rotate(-90)"/>
+	<polygon fill="#4daee2" points="-198,-66 0,132 198,-66" transform="translate(207 207) rotate(-45)"/>
+	<polygon fill="#1293d8" points="-130,0 0,-130 130,0 0,130" transform="translate(150 0)"/>
+	<polygon fill="#4daee2" points="-191,61 69,61 191,-61 -69,-61" transform="translate(-89 239)"/>
+	<polygon fill="#4daee2" points="-130,-44 0,86 130,-44" transform="translate(0 106) rotate(-180)"/>
+	<polygon fill="#4daee2" points="-130,-44 0,86 130,-44" transform="translate(256 -150) rotate(-270)"/>
+</g>
+</svg>

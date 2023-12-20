@@ -98,3 +98,9 @@ __Note:__ This will only work if the element has an `id` attribute.
 
 A known issue is that Elm will clear out attributes for this root element, so `id="elm_root"` won't be visible after Elm loads.
 
+## Known issues
+
+1. Missing support for flags/ports (coming in a future release!)
+
+2. When in a React app, changing a ".elm" component with a ".tsx" one causes issues with unmounting
+  - React calls `removeChild` internally on the initial DOM node, before our component can run `app.unmount()` can restore it. This leads to a runtime exception!

@@ -1,7 +1,8 @@
-module Main exposing (main)
+module Components.Counter exposing (main)
 
 import Browser
 import Html exposing (..)
+import Html.Attributes exposing (class)
 import Html.Events
 
 
@@ -54,6 +55,16 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    button [ Html.Events.onClick Increment ]
-        [ text ("Count: " ++ String.fromInt model.count)
+    let
+        count =
+            String.fromInt model.count
+    in
+    div [ class "card" ]
+        [ button [ Html.Events.onClick Increment ]
+            [ text ("Elm count is " ++ count) ]
+        , p []
+            [ text "Edit "
+            , code [] [ text "src/Components/Counter.elm" ]
+            , text " and save to test HMR"
+            ]
         ]
