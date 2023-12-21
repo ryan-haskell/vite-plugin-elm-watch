@@ -282,17 +282,14 @@ const toJson = (value) => {
   }
 }
 
-const prefix = 'prop_'
-
 const subscribeAllPorts = ({ app, lastProps, listeners }) => {
   if (app && app.ports) {
     for (let name in app.ports) {
       let port = app.ports[name]
       if (port.subscribe) {
         listeners.current[name] = (data) => {
-          let nameWithoutPrefix = name.slice(prefix.length)
-          if (typeof lastProps.current[nameWithoutPrefix] === 'function') {
-            lastProps.current[nameWithoutPrefix](data)
+          if (typeof lastProps.current[name] === 'function') {
+            lastProps.current[name](data)
           }
         }
         port.subscribe(listeners.current[name])
@@ -321,7 +318,7 @@ const handleJsToElmPorts = ({ lastProps, props, elmApp }) => () => {
 
   const sendToElm = (key, value) => {
     if (elmApp.current && elmApp.current.ports) {
-      let port = elmApp.current.ports[prefix + key]
+      let port = elmApp.current.ports[key]
       if (port && port.send) {
         port.send(toJson(value))
       }

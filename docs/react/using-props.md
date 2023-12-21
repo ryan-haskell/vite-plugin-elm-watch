@@ -126,7 +126,7 @@ type alias Model =
 
 
 -- 2️⃣ Initialize the model with the initial 
---   "flags.label" passed in from React
+-- "flags.label" passed in from React
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { -- ...
@@ -137,14 +137,14 @@ init flags =
 
 
 -- 3️⃣ Define a new "PropLabelChanged" message
---   for handling any changes from React
+-- for handling any changes from React
 type Msg
     = -- ...
     | PropLabelChanged String
 
 
 -- 4️⃣ When a new label value comes in, update
---   your `model.label` field with the new value
+-- your `model.label` field with the new value
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -156,17 +156,17 @@ update msg model =
             )
 
 
--- 5️⃣ Define an Elm port. The name must be "prop_"
---   followed by the prop name from React.
-port prop_label : (String -> msg) -> Sub msg
+-- 5️⃣ Define an Elm port. The name must 
+-- exactly match the prop name from React.
+port label : (String -> msg) -> Sub msg
 
 
--- 6️⃣ Add a subscription to listen for events on
---   the "prop_label" port, calling your `PropLabelChanged`
---   message when a change is detected!
+-- 6️⃣ Add a subscription to listen for events on 
+-- the "label" port, calling your `PropLabelChanged`
+-- message when a change is detected!
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    prop_label PropLabelChanged
+    label PropLabelChanged
 
 ```
 
@@ -221,13 +221,12 @@ update msg model =
                     model.count + 1
             in
             ( { model | count = newCount }
-            , prop_onIncrement newCount
+            , onIncrement newCount
             )
 
 -- 2️⃣ Define an outgoing port to send the
---    Int value out to React. (Must be 
---    named "prop_", followed by the prop name)
-port prop_onIncrement : Int -> Cmd msg
+-- `Int` value out to React.
+port onIncrement : Int -> Cmd msg
 
 ```
 

@@ -16,10 +16,10 @@ type alias Flags =
     }
 
 
-port prop_name : (String -> msg) -> Sub msg
+port name : (String -> msg) -> Sub msg
 
 
-port prop_onCounterIncrement : Int -> Cmd msg
+port onCounterIncrement : Int -> Cmd msg
 
 
 
@@ -74,7 +74,7 @@ update msg model =
                     model.count + 1
             in
             ( { model | count = newCount }
-            , prop_onCounterIncrement newCount
+            , onCounterIncrement newCount
             )
 
         NamePropChanged newName ->
@@ -86,7 +86,7 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ prop_name NamePropChanged
+        [ name NamePropChanged
         ]
 
 
