@@ -114,7 +114,7 @@ Initially, this value is passed to our Elm `Counter` component as flags– but t
 As the user changes the value of the text input, here's how we can make sure our Elm component has access to the latest version:
 
 ```elm
-module Components.Counter exposing (main)
+port module Components.Counter exposing (main)
 
 -- ...
 
