@@ -372,7 +372,7 @@ const ${moduleName} = (props) => {
 
   // Note: This used to be "div", but that led to the model
   // being null when the Elm "view" function returned a "div"...
-  return createElement('elmroot', { ref: elmRef })
+  return createElement('elm-root', { ref: elmRef })
 }
 
 export default ${moduleName}`
