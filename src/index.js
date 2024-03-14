@@ -159,8 +159,10 @@ export default function elmWatchPlugin(opts = {}) {
             // Something like [ "Main" ] or [ "Components", "Counter" ], etc
             let elmModulePath = []
             try {
+              let sourceDirs = findSourceDirectoriesFor(id).map(x => x.theSourceDirectory.absolutePath).filter(dirPath => id.startsWith(dirPath))
+              let absPath = sourceDirs[0]
               elmModulePath = id.substring(
-                findSourceDirectoriesFor(id)[0].theSourceDirectory.absolutePath.length + 1,
+                absPath.length + 1,
                 id.length - '.elm'.length
               ).split('/')
             } catch (_) { }
@@ -592,6 +594,7 @@ if (import.meta.hot) {
             cursor: pointer;
             position: relative;
             z-index: 1;
+            margin: 0 1em;
           }
           button:hover {
             opacity: 0.75;
@@ -603,13 +606,14 @@ if (import.meta.hot) {
           button:after {
             content: '';
             position: absolute;
-            top: -0.33em;
+            top: -0.5em;
             left: -1em;
             right: -1em;
-            bottom: -0.33em;
+            bottom: -0.5em;
             z-index: 0;
             border-radius: 1em;
-            border: solid 2px;
+            border: solid 0.125em;
+            cursor: pointer;
           }
           .elm-error__background {
             position: fixed;
@@ -629,29 +633,29 @@ if (import.meta.hot) {
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 1rem;
+            padding: 1em;
+            font-family: 'Fira Code', Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
+            font-variant-ligatures: none;
+            font-weight: 400;
+            font-size: clamp(0.5rem, 2vw, 1rem);
           }
           .elm-error {
             position: relative;
             background: var(--elmError__background);
             color: var(--elmError__foreground);
-            font-weight: 400;
-            font-family: 'Fira Code', Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
-            font-variant-ligatures: none;
-            font-size: 1rem;
             white-space: nowrap;
             line-height: 1.5;
-            border-radius: 0.5rem;
-            box-shadow: 0 1rem 1rem rgba(0, 0, 0, 0.125);
-            border-top: solid 0.5rem var(--elmError__red);
-            max-height: calc(100vh - 2rem);
+            border-radius: 0.5em;
+            box-shadow: 0 1em 1em rgba(0, 0, 0, 0.125);
+            border-top: solid 0.5em var(--elmError__red);
+            max-height: calc(100vh - 4em);
             overflow: auto;
             max-width: 100%;
             box-sizing: border-box;
           }
           .elm-error > * {
-            width: calc(80ch);
-            padding: 2rem;
+            max-width: calc(80em - 4em);
+            padding: 2em;
           }
         </style>
         <div class="elm-error__background"></div>
