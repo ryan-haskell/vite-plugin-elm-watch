@@ -135,7 +135,7 @@ export var toColoredTerminalOutput = function (elmError) {
       if (msg.underline) {
         str += underline
       }
-      if (msg.color) {
+      if (msg.color && colors[msg.color.toUpperCase()]) {
         str += code(colors[msg.color.toUpperCase()])
       }
       str += msg.string
