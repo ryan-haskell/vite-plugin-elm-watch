@@ -159,7 +159,9 @@ export default function elmWatchPlugin(opts = {}) {
             // Something like [ "Main" ] or [ "Components", "Counter" ], etc
             let elmModulePath = []
             try {
-              let sourceDirs = findSourceDirectoriesFor(id).map(x => x.theSourceDirectory.absolutePath).filter(dirPath => id.startsWith(dirPath))
+              let sourceDirs = findSourceDirectoriesFor(id)
+                .map(x => x.theSourceDirectory.absolutePath)
+                .filter(dirPath => id.startsWith(dirPath.split(path.sep).join('/')))
               let absPath = sourceDirs[0]
               elmModulePath = id.substring(
                 absPath.length + 1,
