@@ -76,7 +76,7 @@ var normalizeErrorMessages = function (messages) {
       : msg
   })
 }
-var header = function (error, problem, hasLinks = true) {
+var header = function (error, problem, hasLinks) {
   var MAX_WIDTH = 80
   var SPACER = '-'
   var SPACING_COUNT = 2
@@ -148,7 +148,7 @@ export var toColoredTerminalOutput = function (elmError) {
       var output = elmError.errors.reduce(function (output, error) {
         var problems = error.problems.map(function (problem) {
           return [
-            (code(colors.CYAN) + header(error, problem) + reset),
+            (code(colors.CYAN) + header(error, problem, false) + reset),
             render(problem.message)
           ].join('\n\n\n')
         })
@@ -157,7 +157,7 @@ export var toColoredTerminalOutput = function (elmError) {
       return output.join('\n\n')
     case 'error':
       return [
-        (code(colors.CYAN) + header(elmError, elmError) + reset),
+        (code(colors.CYAN) + header(elmError, elmError, false) + reset),
         render(elmError.message)
       ].join('\n\n')
   }
