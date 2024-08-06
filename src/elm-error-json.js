@@ -33,14 +33,23 @@ export var toColoredHtmlOutput = function (elmError, hasLinks = true, colorMap =
           style['font-weight'] = 'bold'
         }
         if (msg.underline) {
-          style['text-decoration'] = 'underline'
+          style['font-weight'] = 'bold'
         }
         if (msg.color && colors[msg.color.toUpperCase()]) {
           style['color'] = colors[msg.color.toUpperCase()]
         }
         var styleValue = Object.keys(style).map(function (k) { return "".concat(k, ": ").concat(style[k]) }).join('; ')
         var styleAttr = styleValue.length ? ` style="${styleValue}"` : ''
-        return `<span${styleAttr}>${escapeHtml(str)}</span>`
+        
+        if (str.includes('<https://')) {
+          let convertToAnchor = (text) =>
+            text.replace(/<([^>]+)>/, (match, p1) =>
+              `<a style="color: var(--elmError__magenta)" target="_blank" rel="noopener" href="${p1}">${p1}</a>`
+            )
+          return `<span${styleAttr}>${convertToAnchor(str)}</span>`
+        } else {
+          return `<span${styleAttr}>${escapeHtml(str)}</span>`
+        }
       })
       return lines.join(gap)
     }).join('')
@@ -90,17 +99,14 @@ var header = function (error, problem, hasLinks) {
       url = `${error.path}:${region.start.line}:${region.start.column}`
     } catch (_) { }
   }
+  var relativePath = ''
+  if (error.path) {
+    relativePath = error.path.slice(process.cwd().length + 1)
+  }
   if (hasLinks && url) {
-    let right = 'Jump to problem'
     let link = (label) => `<button data-source="${url}">${label}</button>`
-    return PREFIX + left + ' ' + '-'.repeat(dashCount(right) - 10) + '  ' + link(right)
+    return PREFIX + left + ' ' + '-'.repeat(Math.max(5, dashCount(relativePath) - 5)) + ' ' + link(relativePath)
   } else {
-    var cwd = process.cwd()
-    var absolutePath = error.path
-    var relativePath = ''
-    if (absolutePath) {
-      relativePath = absolutePath.slice(cwd.length + 1)
-    }
     return "".concat(PREFIX).concat(left, " ").concat(SPACER.repeat(dashCount(relativePath)), " ").concat(escapeHtml(relativePath))
   }
 }
