@@ -62,11 +62,11 @@ export default function elmWatchPlugin(opts = {}) {
       })
     },
 
-    // TODO: Think about file deletion! 🚨
     async handleHotUpdate(ctx) {
       if (ctx.file.endsWith('.elm')) {
+        let filepath = ctx.file.split('/').join(path.sep) // Fix for Windows!
         return Object.entries(elmEntrypointObject)
-          .filter(([_id, set]) => set.has(ctx.file))
+          .filter(([_id, set]) => set.has(filepath))
           .map(([id]) => ctx.server.moduleGraph.getModuleById(id))
       }
     },
@@ -363,7 +363,7 @@ const ${moduleName} = (props) => {
       return () => {
         elmApp.current = null
         unsubscribeAllPorts({ app, listeners })
-        app.unmount()
+        if (app && app.unmount) { app.unmount() }
         isMounted.current = false
       }
     }
@@ -719,7 +719,8 @@ if (import.meta.hot) {
     }
     if (reloadReasons.length > 0) {
       for (var index = 0; index < apps.length; index++) {
-        apps[index].unmount();
+        let app = apps[index]
+        if (app && app.unmount) { app.unmount() }
       }
       import.meta.hot.invalidate(reloadReasons[0]);
     }
