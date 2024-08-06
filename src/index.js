@@ -64,10 +64,10 @@ export default function elmWatchPlugin(opts = {}) {
 
     async handleHotUpdate(ctx) {
       if (ctx.file.endsWith('.elm')) {
-        let filepath = ctx.file.split('/').join(path.sep) // Fix for Windows!
-        return Object.entries(elmEntrypointObject)
-          .filter(([_id, set]) => set.has(filepath))
-          .map(([id]) => ctx.server.moduleGraph.getModuleById(id))
+        let filepath = ctx.file.split('/').join(path.sep) // Fix for Windows
+        return Object.keys(elmEntrypointObject)
+          .filter(id => elmEntrypointObject[id].has(filepath))
+          .map(id => ctx.server.moduleGraph.getModuleById(id))
       }
     },
 
@@ -585,6 +585,8 @@ if (import.meta.hot) {
             display: flex;
             align-items: center;
             justify-content: center;
+            position: fixed;
+            z-index: 9669;
           }
           button {
             font-size: inherit;
@@ -596,26 +598,15 @@ if (import.meta.hot) {
             cursor: pointer;
             position: relative;
             z-index: 1;
-            margin: 0 1em;
+            margin: 0;
+            border-bottom: solid 0.1em;
           }
-          button:hover {
+          a:hover, button:hover {
             opacity: 0.75;
           }
           button:active {
             opacity: 1;
             color: var(--elmError__foreground)
-          }
-          button:after {
-            content: '';
-            position: absolute;
-            top: -0.5em;
-            left: -1em;
-            right: -1em;
-            bottom: -0.5em;
-            z-index: 0;
-            border-radius: 1em;
-            border: solid 0.125em;
-            cursor: pointer;
           }
           .elm-error__background {
             position: fixed;
