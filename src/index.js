@@ -2,12 +2,13 @@ import os from 'os'
 import fs from 'fs'
 import path from 'path'
 import { minify } from 'terser'
-import { make } from './elm-watch/src/SpawnElm.js'
-import { inject } from './elm-watch/src/Inject.js'
-import { walkImports } from './elm-watch/src/ImportWalker.js'
+import { elmMake, inject, walkImports, readSourceDirectories } from 'elm-watch-lib'
+// import { make } from './elm-watch/src/SpawnElm.js'
+// import { inject } from './elm-watch/src/Inject.js'
+// import { walkImports } from './elm-watch/src/ImportWalker.js'
 import * as ElmErrorJson from './elm-error-json.js'
-import { findClosest } from './elm-watch/src/PathHelpers.js'
-import { readAndParse, getSourceDirectories } from './elm-watch/src/ElmJson.js'
+// import { findClosest } from './elm-watch/src/PathHelpers.js'
+// import { readAndParse, getSourceDirectories } from './elm-watch/src/ElmJson.js'
 import launchEditor from 'launch-editor'
 
 /**
@@ -106,35 +107,21 @@ export default function elmWatchPlugin(opts = {}) {
           console.warn('Debugger disabled for React development (enabling breaks HMR)!')
         }
 
-        let elmMake = make({
-          elmJsonPath: {
-            tag: 'ElmJsonPath',
-            theElmJsonPath: {
-              tag: 'AbsolutePath',
-              absolutePath: path.join(process.cwd(), 'elm.json')
-            }
-          },
+        let { promise: elmMakePromise } = elmMake({
+          elmJsonPath: path.join(process.cwd(), 'elm.json'),
           compilationMode,
-          inputs: [
-            { tag: 'InputPath', theInputPath: { tag: "AbsolutePath", absolutePath: id } }
-          ],
-          outputPath: {
-            tag: 'OutputPath',
-            theOutputPath: { tag: 'AbsolutePath', absolutePath: tempOutputFilepath }
-          },
+          inputs: [id],
+          outputPath: tempOutputFilepath,
           env: process.env,
-          getNow: () => new Date()
         })
-
-        let inputPath = toInputPath(id)
 
         let walkResultPromise = Promise.resolve().then(() => {
           let sourceDirectories = findSourceDirectoriesFor(id)
-          return walkImports(sourceDirectories, [inputPath])
+          return walkImports(sourceDirectories, [id])
         })
 
         let [makeResult, walkResult] = await Promise.all([
-          elmMake.promise,
+          elmMakePromise,
           walkResultPromise
         ])
 
@@ -160,7 +147,6 @@ export default function elmWatchPlugin(opts = {}) {
             let elmModulePath = []
             try {
               let sourceDirs = findSourceDirectoriesFor(id)
-                .map(x => x.theSourceDirectory.absolutePath)
                 .filter(dirPath => id.startsWith(dirPath.split(path.sep).join('/')))
               let absPath = sourceDirs[0]
               elmModulePath = id.substring(
@@ -171,7 +157,7 @@ export default function elmWatchPlugin(opts = {}) {
 
             let transformedElmJs = compiledElmJs
             if (inDevelopment && !shouldMinify) {
-              transformedElmJs = inject(compilationMode, transformedElmJs, elmModulePath)
+              transformedElmJs = inject(compilationMode, transformedElmJs)
             }
             transformedElmJs = patchUnmount(transformedElmJs)
             if (isBodyPatchEnabled) {
@@ -187,10 +173,10 @@ export default function elmWatchPlugin(opts = {}) {
               let moduleName = elmModulePath.slice(-1)[0] || 'Main'
               lastSuccessfulCompiledJs[id] = [
                 reactComponentCode(moduleName),
-                `const program = ({ run () { if (import.meta.hot) { ${initElmWatchWindowVarCode}; } ${transformedElmJs}; ${denestCode(elmModulePath)}; return denest(this.Elm) } }).run(); export { program as __program }; ${hmrClientCode(id, true, true)}`
+                `const program = ({ run () { ${transformedElmJs}; ${denestCode(elmModulePath)}; return denest(this.Elm) } }).run(); export { program as __program }; ${hmrClientCode(id, true, true)}`
               ].join('\n')
             } else {
-              lastSuccessfulCompiledJs[id] = `export default ({ run () { if (import.meta.hot) { ${initElmWatchWindowVarCode}; } ${transformedElmJs}; ${denestCode(elmModulePath)}; return denest(this.Elm) } }).run(); ${hmrClientCode(id, true, false)}`
+              lastSuccessfulCompiledJs[id] = `export default ({ run () { ${transformedElmJs}; ${denestCode(elmModulePath)}; return denest(this.Elm) } }).run(); ${hmrClientCode(id, true, false)}`
             }
 
             return lastSuccessfulCompiledJs[id]
@@ -477,39 +463,23 @@ const patchUnmount = (code) => {
 
 }
 
-/** 
- * @param {string} id
- * @returns {import("./elm-watch/src/Types.js").InputPath}
-*/
-const toInputPath = (id) => ({
-  tag: 'InputPath',
-  originalString: id.slice(process.cwd() + 1),
-  theInputPath: {
-    tag: 'AbsolutePath',
-    absolutePath: id
-  },
-  realpath: {
-    tag: 'AbsolutePath',
-    absolutePath: id
-  },
-})
-
+const findClosest = (name, dir) => {
+  const entry = path.join(dir, name);
+  return fs.existsSync(entry)
+    ? entry
+    : dir === path.parse(dir).root
+      ? undefined
+      : findClosest(name, path.dirname(dir));
+}
 
 const findSourceDirectoriesFor = (entrypointFilepath) => {
   let containingFolder = path.dirname(entrypointFilepath)
-  let closestElmJson = findClosest('elm.json', {
-    tag: 'AbsolutePath',
-    absolutePath: containingFolder
-  })
+  let closestElmJson = findClosest('elm.json', containingFolder)
   if (closestElmJson) {
-    let elmJsonPath = {
-      tag: "ElmJsonPath",
-      theElmJsonPath: closestElmJson
-    }
-    let elmJsonResult = readAndParse(elmJsonPath)
+    let elmJsonResult = readSourceDirectories(closestElmJson)
 
     if (elmJsonResult.tag === 'Parsed') {
-      return getSourceDirectories(elmJsonPath, elmJsonResult.elmJson)
+      return elmJsonResult.sourceDirectories
     } else {
       // TODO: How should we communicate invalid elm.json files?
       return []
@@ -519,14 +489,6 @@ const findSourceDirectoriesFor = (entrypointFilepath) => {
     return []
   }
 }
-
-const initElmWatchWindowVarCode = `
-let { __ELM_WATCH } = window;
-if (typeof __ELM_WATCH !== "object" || __ELM_WATCH === null) {
-    __ELM_WATCH = {};
-    Object.defineProperty(window, "__ELM_WATCH", { value: __ELM_WATCH });
-}
-`
 
 const hmrClientCode = (id, wasSuccessful, isReactComponent) => `
 if (import.meta.hot) {
@@ -698,13 +660,20 @@ if (import.meta.hot) {
     for (var index = 0; index < apps.length; index++) {
       var app = apps[index];
       if (app.__elmWatchProgramType !== data.programType) {
-        reloadReasons.push("PROGRAM_TYPE_CHANGED");
+        reloadReasons.push({
+          tag: "ProgramTypeChanged",
+          previousProgramType: app.__elmWatchProgramType,
+          newProgramType: data.programType,
+        });
       } else {
         try {
           var innerReasons = app.__elmWatchHotReload(data);
           reloadReasons = reloadReasons.concat(innerReasons);
         } catch (error) {
-          reloadReasons.push("INCOMPATIBLE_MODEL_CHANGES");
+          reloadReasons.push({
+            tag: "HotReloadCaughtError",
+            caughtError: error,
+          });
         }
       }
     }
@@ -713,7 +682,7 @@ if (import.meta.hot) {
         let app = apps[index]
         if (app && app.unmount) { app.unmount() }
       }
-      import.meta.hot.invalidate(reloadReasons[0]);
+      import.meta.hot.invalidate(reloadReasons[0].tag);
     }
   })
 }
