@@ -395,14 +395,100 @@ let toMinifiedElmCode = async (unminifiedJs) => {
 }
 
 /** 
- * @param {bool} isBodyPatchEnabled
  * @param {string} code
  * @returns {string}
 */
 const patchBodyNode = (code) => {
   return code
-    .replaceAll('var bodyNode = _VirtualDom_doc.body', 'var bodyNode = args && args.node || _VirtualDom_doc.body')
-    .replaceAll(`_VirtualDom_node('body')`, `_VirtualDom_node(bodyNode.localName)`)
+    .replace(/^(\t+)var bodyNode = _VirtualDom_doc\.body;$/gm, '$1var bodyNode = args && args.node || _VirtualDom_doc.body;')
+    .replace(/^(\t+)var nextNode = _VirtualDom_node\('body'\)/gm, `$1var nextNode = _VirtualDom_node(bodyNode.localName)`)
+}
+
+// This matches full functions, declared either with `function name(` or `var name =`.
+// NOTE: All function names in the regex must also be mentioned in the
+// `REPLACEMENTS` object, and vice versa!
+// The regex is anchored to the beginning of lines, which should make it
+// impossible to match within strings in the user’s program.
+// Inspired by https://github.com/lydell/elm-watch/blob/371cb1d13affdde9832556ea783ffd56a154367a/src/Inject.ts#L14-L20
+const REPLACEMENT_REGEX = /^((?:function (_Platform_initialize|_VirtualDom_applyPatches)\(|var (_VirtualDom_init) =).*\r?\n?\{(?:.*\r?\n)*?)\treturn ([^;]+);(\s+\}\)?;?)$/gm
+
+const REPLACEMENTS = {
+  // Keep track of the last rendered node, so we can access it in `app.unmount`.
+  _VirtualDom_applyPatches: (code) => `var _VirtualDom_lastDomNode = null; ${code.replace(/return/g, "return _VirtualDom_lastDomNode =")}`,
+
+  // Add `app.unmount` to programs. The steps are:
+  // 1. Render one last time, synchronously, in case there is a scheduled
+  //    render with requestAnimationFrame (which then become no-ops).
+  //    This also makes sure `_VirtualDom_lastDomNode` is up-to-date.
+  // 2. Stop all subscriptions.
+  // 3. Clear a bunch of variables.
+  // 4. Remove all event listeners from the node.
+  // 5. Clear all children of the rendered node. Note that text nodes don’t have any children.
+  //    This is useful if the root node is still the passed in DOM node.
+  // 6. Replace the node with the original.
+  // 7. In hot mode, remove the app from the list of mounted apps.
+  // Note: For `Browser.application`, we should ideally remove the 'popstate' and 'hashchange' listeners on `window` as well, but it’s a bit complicated.
+  _Platform_initialize: (_, start, returnValue, end) => `${start}
+  var app = ${returnValue};
+  app.unmount = function () {
+    stepper(model, true /* isSync */);
+    _Platform_enqueueEffects(managers, _Platform_batch(_List_Nil), _Platform_batch(_List_Nil));
+    managers = null;
+    model = null;
+    stepper = null;
+    ports = null;
+    _Platform_effectManagers = {};
+    var node = _VirtualDom_lastDomNode;
+    _VirtualDom_lastDomNode = null;
+    if (node.elmFs) {
+      for (var key in node.elmFs) {
+        node.removeEventListener(key, node.elmFs[key]);
+      }
+      delete node.elmFs;
+    }
+    if (node.replaceChildren) {
+      node.replaceChildren();
+    }
+    if (args && args.node) {
+      node.replaceWith(args.node);
+    } else {
+      node.remove();
+    }
+    if (import.meta.hot) {
+      var index = import.meta.hot.data.elmApps.indexOf(app);
+      if (index !== -1) {
+        import.meta.hot.data.elmApps.splice(index, 1);
+      }
+    }
+  };
+  if (import.meta.hot) {
+    import.meta.hot.data.elmApps ??= [];
+    import.meta.hot.data.elmApps.push(app);
+  }
+  return app;
+${end}`,
+
+  // This is for `Html.text` programs. They are easier to unmount: Just replace the created DOM.
+  _VirtualDom_init: (_, start, returnValue, end) => `${start}
+  var app = ${returnValue};
+  app.unmount = function () {
+    if (node.replaceChildren) {
+      node.replaceChildren();
+    }
+    node.replaceWith(args.node);
+    if (import.meta.hot) {
+      var index = import.meta.hot.data.elmApps.indexOf(app);
+      if (index !== -1) {
+        import.meta.hot.data.elmApps.splice(index, 1);
+      }
+    }
+  };
+  if (import.meta.hot) {
+    import.meta.hot.data.elmApps ??= [];
+    import.meta.hot.data.elmApps.push(app);
+  }
+  return app;
+${end}`,
 }
 
 /**
@@ -410,71 +496,11 @@ const patchBodyNode = (code) => {
  * @returns {string}
 */
 const patchUnmount = (code) => {
-  // TODO: Is this not gonna work with --optimize?
-  let isHtmlProgram = code.includes(`'init':_VirtualDom_init`)
-  let unmountFunctionCode = `
-  function unmount() {
-    if (typeof managers !== 'undefined') {
-      // Only defined for Browser apps (not HTML based ones)
-      _Platform_enqueueEffects(managers, _Platform_batch(_List_Nil), _Platform_batch(_List_Nil));
-      managers = null;
-      model = null;
-      stepper = null;
-      ports = null;
-    }
-    // TODO: Symbol me
-    if (scope.domNode.removeChildren) {
-      // Not available for text nodes
-      scope.domNode.replaceChildren();
-    }
-    if (args && args.node) {
-      scope.domNode.replaceWith(args.node);
-    } else {
-      scope.domNode.remove();
-    }
-    if (import.meta.hot) {
-      const index = import.meta.hot.data.elmApps.indexOf(app);
-      if (index !== -1) {
-        import.meta.hot.data.elmApps.splice(index, 1);
-      }
-    }
-  }
-  `
-
-  if (isHtmlProgram) {
-    return code.replace(
-      'return Object.defineProperties(\n		{}',
-      `${unmountFunctionCode}
-      let app = { unmount: unmount }
-      if (import.meta.hot) {
-        import.meta.hot.data.elmApps ??= [];
-        import.meta.hot.data.elmApps.push(app);
-      }
-      return Object.defineProperties(\n		app`
-    )
-      .replace(
-        'var sendToApp = function() {};',
-        'scope.domNode = node;\nvar sendToApp = function() {};'
-      )
-  } else {
-    return code.replace(
-      /^\s*return (Object\.defineProperties\(\s*)?ports \? \{ ports: ports \} : \{\}(;|,[^)]+\);)|^\s*domNode = _VirtualDom_applyPatches\(domNode, currNode, patches, sendToApp\);/gm,
-      (_, defineProperties, end) =>
-        end !== undefined
-          ? `
-    ${unmountFunctionCode}
-  
-    var app = ${defineProperties ?? ""}ports ? { ports: ports, unmount: unmount } : { unmount: unmount }${end}
-    if (import.meta.hot) {
-      import.meta.hot.data.elmApps ??= [];
-      import.meta.hot.data.elmApps.push(app);
-    }
-    return app;
-          `.trim()
-          : 'domNode = _VirtualDom_applyPatches(domNode, currNode, patches, sendToApp); scope.domNode = domNode;'
-    )
-  }
-
+  return code.replace(
+    REPLACEMENT_REGEX,
+    (match, start, name1, name = name1, returnValue, end) =>
+      REPLACEMENTS[name](match, start, returnValue, end)
+  )
 }
 
 /** 
