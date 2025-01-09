@@ -24,11 +24,10 @@
   },
   "homepage": "https://github.com/ryannhg/vite-plugin-elm-watch#readme",
   "dependencies": {
-    "cross-spawn": "7.0.3",
     "elm": "0.19.1-6",
+    "elm-watch-lib": "1.0.0",
     "launch-editor": "2.6.1",
-    "terser": "5.26.0",
-    "tiny-decoders": "7.0.1"
+    "terser": "5.26.0"
   },
   "devDependencies": {
     "vite": "^5.3.5"
