@@ -1,6 +1,7 @@
 import os from 'os'
 import fs from 'fs'
 import path from 'path'
+import crypto from 'crypto'
 import { minify } from 'terser'
 import { make } from './elm-watch/src/SpawnElm.js'
 import { inject } from './elm-watch/src/Inject.js'
@@ -91,7 +92,7 @@ export default function elmWatchPlugin(opts = {}) {
         }
 
         let tmpDir = os.tmpdir()
-        let tempOutputFilepath = path.join(tmpDir, 'out.js')
+        let tempOutputFilepath = path.join(tmpDir, `${sha256(id)}.js`)
 
         if (isReactComponent && compilationMode === 'debug') {
           compilationMode = 'standard'
@@ -231,6 +232,8 @@ export default function elmWatchPlugin(opts = {}) {
     }
   }
 }
+
+const sha256 = (string) => crypto.createHash('sha256').update(string).digest('hex')
 
 /**
  * Makes it easier to work with multiple entrypoints by turning 
