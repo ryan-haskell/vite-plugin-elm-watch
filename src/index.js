@@ -415,7 +415,7 @@ const REPLACEMENT_REGEX = /^((?:function (_Platform_initialize|_VirtualDom_apply
 const REPLACEMENTS = {
   // Keep track of the last rendered node, so we can access it in `app.unmount`.
   // Inspired by https://github.com/lamdera/compiler/blob/b3514260acecbedb3289d7f0c7386dcf174de59a/extra/Lamdera/Injection.hs#L712-L722
-  _VirtualDom_applyPatches: (code) => `var _VirtualDom_lastDomNode = null; ${code.replace(/return/g, "return _VirtualDom_lastDomNode =")}`,
+  _VirtualDom_applyPatches: (code) => `var _VirtualDom_lastDomNode = null;\n${code.replace(/return/g, "return _VirtualDom_lastDomNode =")}`,
 
   // Add `app.unmount` to programs. The steps are:
   // 1. Render one last time, synchronously, in case there is a scheduled
