@@ -3,12 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import { minify } from 'terser'
 import { elmMake, inject, walkImports, readSourceDirectories } from 'elm-watch-lib'
-// import { make } from './elm-watch/src/SpawnElm.js'
-// import { inject } from './elm-watch/src/Inject.js'
-// import { walkImports } from './elm-watch/src/ImportWalker.js'
 import * as ElmErrorJson from './elm-error-json.js'
-// import { findClosest } from './elm-watch/src/PathHelpers.js'
-// import { readAndParse, getSourceDirectories } from './elm-watch/src/ElmJson.js'
 import launchEditor from 'launch-editor'
 
 /**
