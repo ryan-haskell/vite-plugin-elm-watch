@@ -1,7 +1,7 @@
 {
   "name": "vite-plugin-elm-watch",
   "description": "Use Vite and Elm with reliable HMR and full-color error messages",
-  "version": "1.3.5",
+  "version": "1.4.0",
   "main": "src/index.js",
   "directories": {
     "example": "example"
@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/ryannhg/vite-plugin-elm-watch#readme",
   "dependencies": {
-    "cross-spawn": "7.0.3",
+    "cross-spawn": "7.0.6",
     "elm": "0.19.1-6",
     "launch-editor": "2.6.1",
     "terser": "5.26.0",
