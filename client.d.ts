@@ -6,38 +6,40 @@ declare namespace Elm {
    * 
    * Learn more: <https://guide.elm-lang.org/interop/ports>
    */
-  export type Port = IncomingPort | OutgoingPort
+  export type Port
+    = IncomingPort
+    | OutgoingPort
 
   /**
-   * Outgoing ports let us send messages out of Elm.
+   * Outgoing ports let us __listen for messages coming from Elm__.
    * 
    * Learn more: <https://guide.elm-lang.org/interop/ports#outgoing-messages-cmd>
    */
   export type OutgoingPort<data = any> = {
-    subscribe: (callback: (data: data) => unknown) => void,
-    unsubscribe: (callback: (data: data) => unknown) => void,
+    subscribe: (callback: (data: data) => any) => void,
+    unsubscribe: (callback: (data: data) => any) => void,
     send: undefined
   }
 
   /**
-   * Incoming ports let us listen for messages coming in to Elm.
+   * Incoming ports let us __send messages to Elm__.
    * 
    * Learn more: <https://guide.elm-lang.org/interop/ports#incoming-messages-sub>
    */
   export type IncomingPort<data = any> = {
     subscribe: undefined
     unsubscribe: undefined
-    send: (data : data) => unknown
+    send: (data : data) => any
   }
 
   /**
-   * An App can include "ports"
-   * that enable communication between Elm and JavaScript.
+   * An App can include "ports" that enable
+   * communication between Elm and JavaScript.
    * 
    * Learn more: <https://guide.elm-lang.org/interop/flags>
    */
-  export type App<ports> = {
-    ports: ports
+  export type App<ports extends { [name: string] : Port | undefined } = { [name: string] : Port | undefined }> = {
+    ports?: ports
   }
 
   /**
@@ -50,7 +52,7 @@ declare namespace Elm {
    * Learn more: <https://guide.elm-lang.org/interop/>
    */
   export type Root<flags = any> = {
-    init: <ports = Record<string, Port> | undefined>(args: {
+    init: <ports extends { [name: string] : Port | undefined }>(args: {
       node?: Element | null,
       flags?: flags
     }) => App<ports>
