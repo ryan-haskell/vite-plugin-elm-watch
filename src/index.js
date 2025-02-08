@@ -423,7 +423,6 @@ const REPLACEMENTS = {
     model = null;
     stepper = null;
     ports = null;
-    _Platform_effectManagers = {};
     var node = _VirtualDom_lastDomNode;
     _VirtualDom_lastDomNode = null;
     if (node.elmFs) {
