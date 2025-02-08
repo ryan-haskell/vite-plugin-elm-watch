@@ -25,7 +25,7 @@
   "homepage": "https://github.com/ryannhg/vite-plugin-elm-watch#readme",
   "dependencies": {
     "@lydell/elm": "0.19.1-14",
-    "elm-watch-lib": "1.0.0",
+    "elm-watch-lib": "1.0.1",
     "launch-editor": "2.6.1",
     "terser": "5.26.0"
   },
