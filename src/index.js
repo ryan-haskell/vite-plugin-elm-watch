@@ -681,8 +681,8 @@ if (import.meta.hot) {
             padding: 2em;
           }
         </style>
-        <div part="error-background" class="elm-error__background"></div>
-        <div part="error-parent" class="elm-error__parent">
+        <div part="background" class="elm-error__background"></div>
+        <div part="parent" class="elm-error__parent">
           <div part="error" class="elm-error"></div>
         </div>
       \`
