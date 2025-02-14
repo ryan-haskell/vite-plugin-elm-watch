@@ -44,6 +44,11 @@ export default function elmWatchPlugin(opts = {}) {
    */
   let lastSuccessfulCompiledJs = {}
 
+  /**
+   * @type {string}
+   */
+  let viteConfigRoot = process.cwd()
+
   return {
     name: 'elm-watch',
     configureServer(server_) {
@@ -70,6 +75,10 @@ export default function elmWatchPlugin(opts = {}) {
           .filter(id => elmEntrypointObject[id].has(filepath))
           .map(id => ctx.server.moduleGraph.getModuleById(id))
       }
+    },
+
+    configResolved(config) {
+      viteConfigRoot = config.root
     },
 
     async load(id) {
@@ -112,7 +121,7 @@ export default function elmWatchPlugin(opts = {}) {
             tag: 'ElmJsonPath',
             theElmJsonPath: {
               tag: 'AbsolutePath',
-              absolutePath: path.join(process.cwd(), 'elm.json')
+              absolutePath: path.join(viteConfigRoot, 'elm.json')
             }
           },
           compilationMode,
