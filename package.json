@@ -1,7 +1,7 @@
 {
   "name": "vite-plugin-elm-watch",
   "description": "Use Vite and Elm with reliable HMR and full-color error messages",
-  "version": "1.4.1",
+  "version": "1.4.3",
   "main": "src/index.js",
   "directories": {
     "example": "example"
@@ -26,11 +26,11 @@
   "dependencies": {
     "@lydell/elm": "0.19.1-14",
     "cross-spawn": "7.0.6",
-    "launch-editor": "2.9.1",
-    "terser": "5.26.0",
+    "launch-editor": "2.10.0",
+    "terser": "5.39.0",
     "tiny-decoders": "7.0.1"
   },
   "devDependencies": {
-    "vite": "^5.3.5"
+    "vite": "6.3.2"
   }
 }
