@@ -34,7 +34,7 @@ let app = Main.init()
 - __Import `*.elm` files__ directly from JavaScript or TypeScript
 - __Reliable HMR__ powered by [_elm-watch_](https://lydell.github.io/elm-watch/)
 - __Full-color__, friendly compiler messages in the browser
-- __Jump to problem__ from your browser in one click
+- __Jump to problem__ from your browser in one click, powered by [_launch-editor_](https://github.com/yyx990803/launch-editor)
 - __JS minification__ step is included
 - __React output mode__ for easy interop with existing components
 
