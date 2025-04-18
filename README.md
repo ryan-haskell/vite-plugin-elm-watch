@@ -98,6 +98,27 @@ __Note:__ This will only work if the element has an `id` attribute.
 
 A known issue is that Elm will clear out attributes for this root element, so `id="elm_root"` won't be visible after Elm loads.
 
+## Error overlay styling
+
+The error overlay comes with sensible default look, but allows style customization via CSS parts:
+
+```css
+elm-error-overlay {
+    position: relative;
+    z-index: 1000;
+}
+elm-error-overlay::part(background) {
+    background: red;
+    opacity: 0.7;
+}
+elm-error-overlay::part(parent) {
+    font-size: 16rem;
+}
+elm-error-overlay::part(error) {
+    opacity: 0.9;
+}
+```
+
 ## Known issues
 
 1. When in a React app, swapping a ".elm" component with a ".tsx" will causes issues with unmounting.
