@@ -606,6 +606,7 @@ if (import.meta.hot) {
           }
           .elm-error__background {
             position: fixed;
+            z-index: 2147483648;
             top: 0;
             left: 0;
             right: 0;
@@ -615,6 +616,7 @@ if (import.meta.hot) {
           }
           .elm-error__parent {    
             position: fixed;
+            z-index: 2147483648;
             top: 0;
             left: 0;
             right: 0;
