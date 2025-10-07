@@ -107,7 +107,7 @@ var header = function (error, problem, hasLinks) {
     let link = (label) => `<button data-source="${url}">${label}</button>`
     return PREFIX + left + ' ' + '-'.repeat(Math.max(5, dashCount(relativePath) - 5)) + ' ' + link(relativePath)
   } else {
-    return "".concat(PREFIX).concat(left, " ").concat(SPACER.repeat(dashCount(relativePath)), " ").concat(escapeHtml(relativePath))
+    return "".concat(PREFIX).concat(left, " ").concat(SPACER.repeat(Math.max(5, dashCount(relativePath))), " ").concat(escapeHtml(relativePath))
   }
 }
 var escapeHtml = function (str) {
