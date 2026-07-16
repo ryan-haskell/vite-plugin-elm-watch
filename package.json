@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/ryannhg/vite-plugin-elm-watch#readme",
   "dependencies": {
-    "@lydell/elm": "0.19.1-14",
+    "elm": "0.19.2-0",
     "elm-watch-lib": "1.0.1",
     "cross-spawn": "7.0.6",
     "launch-editor": "2.10.0",
